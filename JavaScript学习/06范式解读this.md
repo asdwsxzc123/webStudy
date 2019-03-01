@@ -9,7 +9,7 @@ ECMAScript语言类型是开发者直接使用ECMAScript可以操作的.也就�
 
 而规范类型相当于meta-values,是用来用算法描述ECMAScript语言结构和ECMAScript语言类型的.规范类型包括: Reference,List,Completion,Property Descriptor,Property Identifier,Lexical Environment, 和 Environment Record.  
 
-ECMAScript规范的作用是用来描述语言底层行为逻辑.
+ECMAScript规范的作用是用来描述语言底层行为逻辑.
 
 ### Reference
 规范8.7讲到Reference
@@ -173,5 +173,42 @@ foo.bar被()包住,查看规范11.1.6 The Grouping Operator
 
 ### (foo.bar = foo.bar)()
 示例3,有赋值操作符,查看规范 11.13.1 simple Assignment(=)  
-第三步
+> 3.Let rval be GetValue(rref).
 
+因为使用了GetValue,所以返回的值不是reference类型.  
+按照之前讲的判断逻辑:  
+> 2.3如果ref不是reference,那么this的值为undefined.  
+
+this 为 undefined
+
+### (false || foo.bar)()
+看示例4，逻辑与算法，查看规范 11.11 Binary Logical Operators：
+> 2.Let lval be GetValue(lref).  
+
+因为使用了GetValue,所以返回的值不是reference类型,this的值为undefined.  
+
+### (foo.bar, foo.bar)()
+看示例5，逗号操作符，查看规范11.14 Comma Operator ( , )
+
+> 2.Call GetValue(lref).
+
+因为使用了 GetValue，所以返回的不是 Reference 类型，this 为 undefined
+
+注意:  
+在非严格模式下,this 的值为 undefined 的时候，其值会被隐式转换为全局对象.因此3,4,5的值输出为1.
+
+### 最后
+冴羽的这篇文字看的我是一脸的懵逼,直接从范式的角度来讲this的指向,表示没看懂,这篇文章需要多看几遍.  
+一般的博客讲到this的指向,都是从调用场景来讲的,this指向调用者
+```javascript
+var obj = {
+  a: 1,
+  b: function () {
+    console.log(this);
+  }
+}
+1、作为对象调用时，指向该对象 obj.b(); // 指向obj
+2、作为函数调用, var b = obj.b; b(); // 指向全局window
+3、作为构造函数调用 var b = new Fun(); // this指向当前实例对象
+4、作为call与apply调用 obj.b.apply(object, []); // this指向当前的object
+```
