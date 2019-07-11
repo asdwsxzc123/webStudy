@@ -1,5 +1,8 @@
 ## 如何实现
 
+underscore 版本  
+\_.VERSION = '1.9.1';
+
 ```js
 (function() {
   // Establish the root object, `window` (`self`) in the browser, `global`
