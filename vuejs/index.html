@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app">
+        <!-- {{msg}} -->
+        <p>{{msg}}</p>
+        <p v-text="msg"></p>
+        <p v-text="car.name"></p>
+        <p v-html="h2"></p>
+        <input type="text" v-model="msg">
+        <button v-on:click="checkMe">git</button>
+    </div>
+</body>
+<script src="./src/watcher.js"></script>
+<script src="./src/observer.js"></script>
+<script src="./src/compile.js"></script>
+<script src="./src/vue.js"></script>
+<script>
+   var vm = new Vue({
+        el: '#app',
+        data: {
+            msg: '我是msg',
+            h2: '<h2>mm</h2>',
+            car: {
+                name: '奔驰',
+                free: 1000
+            }
+        },
+        method: {
+            checkMe () {
+                console.log(this.$data.msg);
+                this.$data.car.name = 111
+            }
+        }
+    })
+
+</script>
+</html>
