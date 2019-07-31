@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+
+<body>
+  <div id="app">
+    <div>111</div>
+    <div>111</div>
+    <div>111</div>
+  </div>
+</body>
+<script>
+
+  var _ = {};
+
+  var escapeMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "`": "&#x60;"
+  };
+
+  _.escape = function (string) {
+    var escaper = function (match) {
+      console.log("====================================");
+      console.log(match);
+      console.log("====================================");
+      return escapeMap[match];
+    };
+    // 使用非捕获性分组
+    var source = "(?:" + Object.keys(escapeMap).join("|") + ")";
+    console.log(source); // (?:&|<|>|"|'|`)
+    var testRegexp = RegExp(source);
+    var replaceRegexp = RegExp(source, "g");
+
+    string = string == null ? "" : "" + string;
+    return testRegexp.test(string)
+      ? string.replace(replaceRegexp, escaper)
+      : string;
+  };
+  console.log('====================================');
+  console.log(_.escape(document.getElementById('app').innerHTML));
+  console.log('====================================');
+</script>
+
+</html>
