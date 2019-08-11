@@ -1033,118 +1033,1024 @@ object-assign
         );
       }
     }
-  }
-  var scheduledHostCallback = null;
-  var isMessageEventScheduled = false;
-  var timeoutTime = -1;
+    var scheduledHostCallback = null;
+    var isMessageEventScheduled = false;
+    var timeoutTime = -1;
 
-  var isAnimationFrameScheduled = false;
+    var isAnimationFrameScheduled = false;
 
-  var isFlushingHostCallback = false;
+    var isFlushingHostCallback = false;
 
-  var frameDeadline = 0;
-  // 我们开始假设我们以30fps的速度运行，但随后启发式跟踪
-  // 如果我们得到更频繁的动画，会将该值调整为更快的fps帧。
-  var previousFrameTime = 33;
-  var activeFrameTime = 33;
+    var frameDeadline = 0;
+    // 我们开始假设我们以30fps的速度运行，但随后启发式跟踪
+    // 如果我们得到更频繁的动画，会将该值调整为更快的fps帧。
+    var previousFrameTime = 33;
+    var activeFrameTime = 33;
 
-  shouldYieldToHost = function() {
-    return frameDeadline <= getCurrentTime();
-  };
+    shouldYieldToHost = function() {
+      return frameDeadline <= getCurrentTime();
+    };
 
-  // 我们使用postMessage技巧将空闲工作推迟到重新喷漆之后。
-  var channel = new MessageChannel();
-  var port = channel.port2;
-  channel.port1.onmessage = function(event) {
-    isMessageEventScheduled = false;
+    // 我们使用postMessage技巧将空闲工作推迟到重新喷漆之后。
+    var channel = new MessageChannel();
+    var port = channel.port2;
+    channel.port1.onmessage = function(event) {
+      isMessageEventScheduled = false;
 
-    var prevScheduledCallback = scheduledHostCallback;
-    var prevTimeoutTime = timeoutTime;
-    scheduledHostCallback = null;
-    timeoutTime = -1;
+      var prevScheduledCallback = scheduledHostCallback;
+      var prevTimeoutTime = timeoutTime;
+      scheduledHostCallback = null;
+      timeoutTime = -1;
 
-    var currentTime = getCurrentTime();
+      var currentTime = getCurrentTime();
 
-    var didTimeout = false;
+      var didTimeout = false;
 
-    if (frameDeadline - currentTime <= 0) {
-      // 在这段空闲时间里没有时间了。检查回调是否超时和是否已超出。
-      if (prevTimeoutTime !== -1 && prevTimeoutTime <= currentTime) {
-        // 超时。调用回调，即使没有还有时间。
-        didTimeout = true;
-      } else {
-        // 没有超时
-        if (!isAnimationFrameScheduled) {
-          // 安排另一个动画回调，以便稍后重试。
-          isAnimationFrameScheduled = true;
-          requestAnimationFrameWithTimeout(animationTick);
+      if (frameDeadline - currentTime <= 0) {
+        // 在这段空闲时间里没有时间了。检查回调是否超时和是否已超出。
+        if (prevTimeoutTime !== -1 && prevTimeoutTime <= currentTime) {
+          // 超时。调用回调，即使没有还有时间。
+          didTimeout = true;
+        } else {
+          // 没有超时
+          if (!isAnimationFrameScheduled) {
+            // 安排另一个动画回调，以便稍后重试。
+            isAnimationFrameScheduled = true;
+            requestAnimationFrameWithTimeout(animationTick);
+          }
+          // 退出而不调用回调。
+          scheduledHostCallback = prevScheduledCallback;
+          timeoutTime = prevTimeoutTime;
+          return;
         }
-        // 退出而不调用回调。
-        scheduledHostCallback = prevScheduledCallback;
-        timeoutTime = prevTimeoutTime;
+      }
+
+      if (prevScheduledCallback !== null) {
+        isFlushingHostCallback = true;
+        try {
+          prevScheduledCallback(didTimeout);
+        } finally {
+          isFlushingHostCallback = false;
+        }
+      }
+    };
+
+    var animationTick = function(rafTime) {
+      if (scheduledHostCallback !== null) {
+        // 在帧开始之前。如果调度程序队列在帧末尾不是空的，则将继续在该回调内刷新。如果队列为空，然后它会立即退出。在开始时发布回调帧确保它在最早可能的帧内被激发。如果我们等到帧结束后再发布回调，我们就冒着浏览器跳过帧，直到帧之后。
+        requestAnimationFrameWithTimeout(animationTick);
+      } else {
+        // 无等待工作。退出
+        isAnimationFrameScheduled = false;
         return;
       }
-    }
 
-    if (prevScheduledCallback !== null) {
-      isFlushingHostCallback = true;
+      var nextFrameTime = rafTime - frameDeadline + activeFrameTime;
+      if (
+        nextFrameTime < activeFrameTime &&
+        previousFrameTime < activeFrameTime
+      ) {
+        if (nextFrameTime < 8) {
+          // 防御性编码。我们不支持高于120Hz的帧速率。如果计算的帧时间小于8，则可能是错误。
+          nextFrameTime = 8;
+        }
+        // 如果一帧变长，那么下一帧可能变短以赶上。
+        // 如果两帧连成一行，那么这就表明我们实际上，它的帧速率比我们目前正在优化的要高。我们相应地动态调整启发式。例如，如果我们在120Hz显示器或90Hz VR显示器上运行。取两个最大值，以防其中一个由于错过帧最后期限。
+        activeFrameTime =
+          nextFrameTime < previousFrameTime ? previousFrameTime : nextFrameTime;
+      } else {
+        previousFrameTime = nextFrameTime;
+      }
+      frameDeadline = rafTime + activeFrameTime;
+      if (!isMessageEventScheduled) {
+        isMessageEventScheduled = true;
+        port.postMessage(undefined);
+      }
+    };
+
+    requestHostCallback = function(callback, absoluteTimeout) {
+      scheduledHostCallback = callback;
+      timeoutTime = absoluteTimeout;
+      if (isFlushingHostCallback || absoluteTimeout < 0) {
+        // 不要等待下一帧。在新事件中，尽快继续工作。
+        port.postMessage(undefined);
+      } else if (!isAnimationFrameScheduled) {
+        // 如果rAF还没调度一个，我们需要调度一个帧。
+        // TODO:如果这个rAF没有实现，因为浏览器堵塞，我们可能还希望将setTimeout触发器RIC作为备份，以确保我们继续工作。
+        isAnimationFrameScheduled = true;
+        requestAnimationFrameWithTimeout(animationTick);
+      }
+    };
+    cancelHostCallback = function() {
+      scheduledHostCallback = null;
+      isMessageEventScheduled = false;
+      timeoutTime = -1;
+    };
+  }
+  // 帮助识别开始阶段生命周期挂钩和设置状态reducers中的副作用：
+  // 在某些情况下，strictmode还应双倍渲染生命周期。但是，对于测试来说，这可能会令人困惑， 而且它可能对生产性能不利。此功能标志可用于控制行为：
+  // 为了保留调试器的“捕获异常时暂停”行为，我们在invokeguardCallback内重播失败组件的开始阶段。
+  // 警告不推荐使用的异步不安全生命周期；与RFC 6相关：
+  // 收集探查器子树的高级计时度量。
+  // 跟踪触发每次提交的交互。
+
+  var enableSchedulerTracing = true;
+  // Only used in www builds.
+  // TODO: true? Here it might just be false.
+
+  // Only used in www builds.
+
+  // Only used in www builds.
+  // react fire：防止值和选中的属性同步及其相关的DOM属性
+  // 在即将到来的16.7版本中，这些API将不再是“不稳定的”，
+  // 使用一个标志来控制此行为，以同时支持16.6个小版本。
+  var enableStableConcurrentModeAPIs = false;
+
+  var DEFAULT_THREAD_ID = 0;
+
+  // 用于生成唯一ID的计数器。
+  var interactionIDCounter = 0;
+  var threadIDCounter = 0;
+  // 一组当前跟踪的交互。
+  //交互“stack”–
+  // 表示新跟踪的交互被附加到以前的活动集。
+  // 当交互超出范围时，将恢复上一组（如果有）。
+  var interactionsRef = null;
+  // 有点像发布订阅模式
+  // 监听者通知交互何时开始和结束。
+  var subscriberRef = null;
+
+  if (enableSchedulerTracing) {
+    interactionsRef = {
+      current: new Set()
+    };
+    subscriberRef = {
+      current: null
+    };
+  }
+  function unstable_clear(callback) {
+    if (!enableSchedulerTracing) {
+      return callback();
+    }
+    var prevInteractions = interactionsRef.current;
+    interactionsRef.current = new Set();
+    try {
+      return callback();
+    } finally {
+      interactionsRef.current = prevInteractions;
+    }
+  }
+  function unstable_getCurrent() {
+    if (!enableSchedulerTracing) {
+      return null;
+    } else {
+      return interactionsRef.current;
+    }
+  }
+  function unstable_getThredId() {
+    return ++threadIDcounter;
+  }
+  function unstable_trace(name, timestamp, callback) {
+    var threadID =
+      arguments.length > 3 && arguments[3] !== undefined
+        ? arguments[3]
+        : DEFAULT_THREAD_ID;
+    if (!enableSchedulerTracing) {
+      return callback();
+    }
+    var interaction = {
+      __count: 1,
+      id: interactionIDCounter++,
+      name: name,
+      timestamp: timestamp
+    };
+    var prevInteractions = interactionsRef.current;
+    // 跟踪的交互应该堆叠/累积。
+    // 为此，克隆当前交互。
+    // 完成后将恢复上一组。
+    var interactions = new Set(prevInteractions);
+    interactions.add(interaction);
+    interactionsRef.current = interactions;
+
+    var subscriber = subscriberRef.current;
+    var returnValue = void 0;
+    try {
+      if (subscriber !== null) {
+        subscriber.onInteractionTraced(interaction);
+      }
+    } finally {
       try {
-        prevScheduledCallback(didTimeout);
+        if (subscriber !== null) {
+          subscriber.onWorkStarted(interactions, threadID);
+        }
       } finally {
-        isFlushingHostCallback = false;
+        try {
+          returnValue = callback();
+        } finally {
+          interactionsRef.current = prevInteractions;
+          try {
+            if (subscriber !== null) {
+              subscriber.onWorkStopped(interactions, threadID);
+            }
+          } finally {
+            interaction.__count--;
+            // 如果没有为此交互安排异步工作，
+            // 通知订阅发布者它已完成。
+            if (subscriber !== null && interaction.__count === 0) {
+              subscriber.onInteractionScheduledWorkCompleted(interaction);
+            }
+          }
+        }
       }
     }
-  };
+    return returnValue;
+  }
 
-  var animationTick = function(rafTime) {
-    if (scheduledHostCallback !== null) {
-      // 在帧开始之前。如果调度程序队列在帧末尾不是空的，则将继续在该回调内刷新。如果队列为空，然后它会立即退出。在开始时发布回调帧确保它在最早可能的帧内被激发。如果我们等到帧结束后再发布回调，我们就冒着浏览器跳过帧，直到帧之后。
-      requestAnimationFrameWithTimeout(animationTick);
-    } else {
-      // 无等待工作。退出
-      isAnimationFrameScheduled = false;
-      return;
+  function unstable_wrap(callback) {
+    var threadID =
+      arguments.length > 1 && arguments[1] !== undefined
+        ? arguments[1]
+        : DEFAULT_THREAD_ID;
+    if (!enableSchedulerTracing) {
+      return callback;
+    }
+    var wrappedInterations = interactionsRef.current;
+
+    var subscriber = subscriberRef.current;
+    if (subscriber !== null) {
+      subscriber.onWorkScheduled(wrappedInterations, threadID);
     }
 
-    var nextFrameTime = rafTime - frameDeadline + activeFrameTime;
-    if (
-      nextFrameTime < activeFrameTime &&
-      previousFrameTime < activeFrameTime
-    ) {
-      if (nextFrameTime < 8) {
-        // 防御性编码。我们不支持高于120Hz的帧速率。如果计算的帧时间小于8，则可能是错误。
-        nextFrameTime = 8;
+    // 更新当前交互的挂起异步工作计数。
+    // 出错时调用订阅服务器后更新。
+    wrappedInterations.forEach(function(interaction) {
+      interaction.__count++;
+    });
+
+    var hasRun = false;
+
+    function wrapped() {
+      var prevInteractions = interactionsRef.current;
+      interactionsRef.current = wrappedInterations;
+
+      subscriber = subscriberRef.current;
+
+      try {
+        var returnValue = void 0;
+        try {
+          if (subscriber !== null) {
+            subscriber.onWorkStarted(wrappedInterations, threadID);
+          }
+        } finally {
+          try {
+            returnValue = callback.apply(undefined, arguments);
+          } finally {
+            interactionsRef.current = prevInteractions;
+
+            if (subscriber !== null) {
+              subscriber.onWorkStopped(wrappedInterations, threadID);
+            }
+          }
+        }
+        return returnValue;
+      } finally {
+        if (!hasRun) {
+          // 我们只希望一个被包装的函数执行一次，
+          // 但如果执行多于一次,只减少一次未完成的交互计数。
+          hasRun = true;
+
+          // 为所有打包的交互更新挂起的异步计数。
+          // 如果这是其中任何一个的最后一次调度异步工作，
+          // 将它们标记为已完成。
+          wrappedInterations.forEach(function(interaction) {
+            interaction.__count--;
+            if (subscriber !== null && interaction.__count === 0) {
+              subscriber.onInteractionScheduledWorkCompleted(interaction);
+            }
+          });
+        }
       }
-      // 如果一帧变长，那么下一帧可能变短以赶上。
-      // 如果两帧连成一行，那么这就表明我们实际上，它的帧速率比我们目前正在优化的要高。我们相应地动态调整启发式。例如，如果我们在120Hz显示器或90Hz VR显示器上运行。取两个最大值，以防其中一个由于错过帧最后期限。
-      activeFrameTime =
-        nextFrameTime < previousFrameTime ? previousFrameTime : nextFrameTime;
-    } else {
-      previousFrameTime = nextFrameTime;
     }
-    frameDeadline = rafTime + activeFrameTime;
-    if (!isMessageEventScheduled) {
-      isMessageEventScheduled = true;
-      port.postMessage(undefined);
-    }
-  };
+    wrapped.cancel = function cancel() {
+      subscriber = subscriberRef.current;
+      try {
+        if (subscriber !== null) {
+          subscriber.onWorkCancel(wrappedInterations, threadID);
+        }
+      } finally {
+        // 为所有打包的交互更新挂起的异步计数。
+        // 如果这是其中任何一个的最后一次计划异步工作，
+        // 将它们标记为已完成。
+        wrappedInteractions.forEach(function(interaction) {
+          interaction.__count--;
 
-  requestHostCallback = function(callback, absoluteTimeout) {
-    scheduledHostCallback = callback;
-    timeoutTime = absoluteTimeout;
-    if (isFlushingHostCallback || absoluteTimeout < 0) {
-      // 不要等待下一帧。在新事件中，尽快继续工作。
-      port.postMessage(undefined);
-    } else if (!isAnimationFrameScheduled) {
-      // 如果rAF还没调度一个，我们需要调度一个帧。
-      // TODO:如果这个rAF没有实现，因为浏览器堵塞，我们可能还希望将setTimeout触发器RIC作为备份，以确保我们继续工作。
-      isAnimationFrameScheduled = true;
-      requestAnimationFrameWithTimeout(animationTick);
+          if (subscriber && interaction.__count === 0) {
+            subscriber.onInteractionScheduledWorkCompleted(interaction);
+          }
+        });
+      }
+    };
+
+    return wrapped;
+  }
+
+  var subscribers = null;
+  if (enableSchedulerTracing) {
+    subscribers = new Set();
+  }
+  function unstable_subscribe(subscriber) {
+    if (enableSchedulerTracing) {
+      subscribers.add(subscriber);
+      if (subscribers.size === 1) {
+        subscriberRef.current = {
+          onInteractionScheduledWorkCompleted: onInteractionScheduledWorkCompleted,
+          onInteractionTraced: onInteractionTraced,
+          onWorkCanceled: onWorkCanceled,
+          onWorkScheduled: onWorkScheduled,
+          onWorkStarted: onWorkStarted,
+          onWorkStopped: onWorkStopped
+        };
+      }
     }
-  };
-  cancelHostCallback = function() {
-    scheduledHostCallback = null;
-    isMessageEventScheduled = false;
-    timeoutTime = -1;
-  };
+
+    function unstable_unsubscribe(subscriber) {
+      if (enableSchedulerTracing) {
+        subscribers.delete(subscriber);
+        if (subscribers.size === 0) {
+          subscriberRef.current = null;
+        }
+      }
+    }
+
+    function onInteractionTraced(interaction) {
+      var didCatchError = false;
+      var caughtError = null;
+
+      subscribers.forEach(function(subscriber) {
+        try {
+          subscriber.onInteractionTraced(interaction);
+        } catch (error) {
+          if (!didCatchError) {
+            didCatchError = true;
+            caughtError = error;
+          }
+        }
+      });
+
+      if (didCatchError) {
+        throw caughtError;
+      }
+    }
+
+    function onInteractionScheduledWorkCompleted(interaction) {
+      var didCatchError = false;
+      var caughtError = null;
+      subscribers.forEach(function(subscriber) {
+        try {
+          subscriber.onInteractionScheduledWorkCompleted(interaction);
+        } catch (error) {
+          if (!didCatchError) {
+            didCatchError = true;
+            caughtError = error;
+          }
+        }
+      });
+
+      if (didCatchError) {
+        throw caughtError;
+      }
+    }
+    function onWorkScheduled(interactions, threadID) {
+      var didCatchError = false;
+      var caughtError = null;
+
+      subscribers.forEach(function(subscriber) {
+        try {
+          subscriber.onWorkScheduled(interactions, threadID);
+        } catch (error) {
+          if (!didCatchError) {
+            didCatchError = true;
+            caughtError = error;
+          }
+        }
+      });
+
+      if (didCatchError) {
+        throw caughtError;
+      }
+    }
+
+    function onWorkStarted(interactions, threadID) {
+      var didCatchError = false;
+      var caughtError = null;
+
+      subscribers.forEach(function(subscriber) {
+        try {
+          subscriber.onWorkStarted(interactions, threadID);
+        } catch (error) {
+          if (!didCatchError) {
+            didCatchError = true;
+            caughtError = error;
+          }
+        }
+      });
+
+      if (didCatchError) {
+        throw caughtError;
+      }
+    }
+
+    function onWorkStopped(interactions, threadID) {
+      var didCatchError = false;
+      var caughtError = null;
+
+      subscribers.forEach(function(subscriber) {
+        try {
+          subscriber.onWorkStopped(interactions, threadID);
+        } catch (error) {
+          if (!didCatchError) {
+            didCatchError = true;
+            caughtError = error;
+          }
+        }
+      });
+
+      if (didCatchError) {
+        throw caughtError;
+      }
+    }
+
+    function onWorkCanceled(interactions, threadID) {
+      var didCatchError = false;
+      var caughtError = null;
+
+      subscribers.forEach(function(subscriber) {
+        try {
+          subscriber.onWorkCanceled(interactions, threadID);
+        } catch (error) {
+          if (!didCatchError) {
+            didCatchError = true;
+            caughtError = error;
+          }
+        }
+      });
+
+      if (didCatchError) {
+        throw caughtError;
+      }
+    }
+
+    /**
+     * 跟踪当前所有者。
+     * 当前所有者是应该拥有以下任何组件的组件目前正在建设中。
+     */
+    var ReactCurrentOwner = {
+      /**
+       * @internal
+       * @type {ReactComponent}
+       */
+      current: null
+    };
+
+    var BEFORE_SLASH_RE = /^(.*)[\\\/]/;
+
+    var describeComponentFrame = function(name, source, ownerName) {
+      var sourceInfo = '';
+      if (source) {
+        var path = source.fileName;
+        var fileName = path.replace(BEFORE_SLASH_RE, '');
+        {
+          // 在dev中，包括用于常见特殊情况的代码：
+          // 首选“folder/index.js”而不是“index.js”。
+          if (/^index\./.text(fileName)) {
+            var match = path.match(BEFORE_SLASH_RE);
+            if (match) {
+              var pathBeforeSlash = match[1];
+              if (pathBeforeSlash) {
+                var folderName = pathBeforeSlash.replace(BEFORE_SLASH_RE, '');
+                fileName = folderName + '/' + fileName;
+              }
+            }
+          }
+        }
+        sourceInfo = ' (at ' + fileName + ':' + source.lineNumber + ')';
+      } else if (ownerName) {
+        sourceInfo = ' (created by ' + ownerName + ')';
+      }
+      return '\n    in ' + (name || 'Unknown') + sourceInfo;
+    };
+
+    var Resolved = 1;
+
+    function refineResolvedLazyComponent(lazyComponent) {
+      return (lazyComponent._status = Resolved ? lazyComponent._result : null);
+    }
+
+    function getWrappedName(outerType, innerType, wrapperName) {
+      var functionName = innerType.displayName || innerType.name || '';
+      return (
+        outerType.displayName ||
+        (functionName !== ''
+          ? wrapperName + '(' + functionName + ')'
+          : wrapperName)
+      );
+    }
+
+    function getComponent(type) {
+      if (type === null) {
+        // 主机根,文本节点或只是类型无效。
+        return null;
+      }
+      {
+        if (typeof type.tag === 'number') {
+          warningWithoutStack$1(
+            false,
+            'Received an unexpected object in getComponentName(). ' +
+              'This is likely a bug in React. Please file an issue.'
+          );
+        }
+      }
+      if (typeof type === 'string') {
+        return type;
+      }
+      switch (type) {
+        case REACT_CONCURRENT_MODE_TYPE:
+          return 'ConcurrentMode';
+        case REACT_FRAGMENT_TYPE:
+          return 'Fragment';
+        case REACT_PORTAL_TYPE:
+          return 'Portal';
+        case REACT_PROFILER_TYPE:
+          return 'Profiler';
+        case REACT_STRICT_MODE_TYPE:
+          return 'StrictMode';
+        case REACT_SUSPENSE_TYPE:
+          return 'Suspense';
+      }
+
+      if (typeof type === 'object') {
+        switch (type.$$typeof) {
+          case REACT_CONTEXT_TYPE:
+            return 'Context.Consumer';
+          case REACT_PROVIDER_TYPE:
+            return 'Context.Provider';
+          case REACT_FORWARD_REF_TYPE:
+            return getWrappedName(type, type.render, 'ForwardRef');
+          case REACT_MEMO_TYPE:
+            return getComponentName(type.type);
+          case REACT_LAZY_TYPE: {
+            var thenable = type;
+            var resolvedThenable = refineResolvedLazyComponent(thenable);
+            if (resolvedThenable) {
+              return getComponentName(resolvedThenable);
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    var ReactDebugCurrentFrame = {};
+    var currentlyValidatingElement = null;
+
+    function setCurrentlyValidatingElement(element) {
+      {
+        currentlyValidatingElement = element;
+      }
+    }
+
+    {
+      // 当前渲染器注入的堆栈实现。
+      ReactDebugCurrentFrame.getCurrentStack = null;
+      ReactDebugCurrentFrame.getStackAddendum = function() {
+        var stack = '';
+        // 在验证元素时添加额外的顶框
+        if (currentlyValidatingElement) {
+          var name = getComponentName(currentlyValidatingElement.type);
+          var owner = currentlyValidatingElement._owner;
+          stack += describeComponentFrame(
+            name,
+            currentlyValidatingElement._source,
+            owner && getComponentName(owner.type)
+          );
+        }
+
+        // 委托给特定于注入渲染器的实现
+        var impl = ReactDebugCurrentFrame.getCurrentStack;
+        if (impl) {
+          stack += impl() || '';
+        }
+        return stack;
+      };
+    }
+
+    var ReactSharedInternals = {
+      ReactcurrentDispatcher: ReactcurrentDispatcher,
+      ReactCurrentOwner: ReactCurrentOwner,
+      // 由渲染器使用，以避免在UMD包中两次绑定对象分配：
+      assign: objectAssign
+    };
+
+    {
+      // 重新导出UMD包的计划API。
+      // 这避免了在小更新中引入对新UMD全局的依赖， 因为这将是一个破坏性的更改（例如，对于所有现有的代码沙盒）。 此再出口仅适用于UMD捆绑包；
+      // CJS包使用共享的NPM包。
+      objectAssign(ReactSharedInternals, {
+        Scheduler: {
+          unstable_cancelCallback: unstable_cancelCallback,
+          unstable_shouldYield: unstable_shouldYield,
+          unstable_now: getCurrentTime,
+          unstable_scheduleCallback: unstable_scheduleCallback,
+          unstable_runWithPriority: unstable_runWithPriority,
+          unstable_next: unstable_next,
+          unstable_wrapCallback: unstable_wrapCallback,
+          unstable_getFirstCallbackNode: unstable_getFirstCallbackNode,
+          unstable_pauseExecution: unstable_pauseExecution,
+          unstable_continueExecution: unstable_continueExecution,
+          unstable_getCurrentPriorityLevel: unstable_getCurrentPriorityLevel,
+          unstable_IdlePriority: IdlePriority,
+          unstable_ImmediatePriority: ImmediatePriority,
+          unstable_LowPriority: LowPriority,
+          unstable_NormalPriority: NormalPriority,
+          unstable_UserBlockingPriority: UserBlockingPriority
+        },
+        SchedulerTracing: {
+          __interactionsRef: interactionsRef,
+          __subscriberRef: subscriberRef,
+          unstable_clear: unstable_clear,
+          unstable_getCurrent: unstable_getCurrent,
+          unstable_getThreadID: unstable_getThreadID,
+          unstable_subscribe: unstable_subscribe,
+          unstable_trace: unstable_trace,
+          unstable_unsubscribe: unstable_unsubscribe,
+          unstable_wrap: unstable_wrap
+        }
+      });
+    }
+
+    {
+      objectAssign(ReactSharedInternals, {
+        // 这些不需要被包含在生成环境
+        ReactDebugCurrentFrame: ReactDebugCurrentFrame,
+        // react dom 16.0.0的垫片仍然破坏（但未使用）。
+        // TODO: remove in React 17.0.
+        ReactComponentTreeHook: {}
+      });
+    }
+
+    /**
+     * 类似于不变量，但仅在不满足条件时记录警告。
+     * 这可用于在关键的开发环境中记录问题路径。删除生产环境的日志代码将保留相同的逻辑，遵循相同的代码路径。
+     */
+
+    var warning = warningWithoutStack$1;
+
+    {
+      warning = function(condition, format) {
+        if (condition) {
+          return;
+        }
+        var ReactDebugCurrentFrame =
+          ReactSharedInternals.ReactDebugCurrentFrame;
+        var stack = ReactDebugCurrentFrame.getStackAddendum();
+
+        for (
+          var _len = arguments.length,
+            args = Array(_len > 2 ? _len - 2 : 0),
+            _key = 2;
+          _key < _len;
+          _key++
+        ) {
+          args[_key - 2] = arguments[_key];
+        }
+        warningWithoutStack$1.apply(
+          undefined,
+          [false, format + '%s'].concat(args, [stack])
+        );
+      };
+    }
+    var warning$1 = warning;
+
+    var hasOwnProperty$1 = Object.prototype.hasOwnProperty;
+
+    var RESERVED_PROPS = {
+      key: true,
+      ref: true,
+      __self: true,
+      __source: true
+    };
+
+    var specialPropKeyWarningShown = void 0;
+    var specialPropRefWarningShown = void 0;
+
+    function hasValidRef(config) {
+      {
+        if (hasOwnProperty$1.call(config, 'ref')) {
+          var getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
+          if (getter && getter.isReacWarning) {
+            return false;
+          }
+        }
+      }
+      return config.ref !== undefined;
+    }
+
+    function hasValidKey(config) {
+      {
+        if (hasOwnProperty$1.call(config, 'key')) {
+          var getter = Object.getOwnPropertyDescriptor(config, 'key').get;
+          if (getter && getter.isReactWarning) {
+            return false;
+          }
+        }
+      }
+      return config.key !== undefined;
+    }
+
+    function defineKeyPropWarningGetter(props, displayName) {
+      var warnAboutAccessingKey = function() {
+        if (!specialPropKeyWarningShown) {
+          specialPropKeyWarningShown = true;
+          warningWithoutStack$1(
+            false,
+            '%s: `key` is not a prop. Trying to access it will result ' +
+              'in `undefined` being returned. If you need to access the same ' +
+              'value within the child component, you should pass it as a different ' +
+              'prop. (https://fb.me/react-special-props)',
+            displayName
+          );
+        }
+      };
+      warnAboutAccessingKey.isReacWarning = true;
+      Object.defineProperty(props, 'key', {
+        get: warnAboutAccessingKey,
+        configurable: true
+      });
+    }
+
+    function defineRefPropWarningGetter(props, displayName) {
+      var warnAboutAccessingRef = function() {
+        if (!specialPropRefWarningShown) {
+          specialPropRefWarningShown = true;
+          warningWithoutStack$1(
+            false,
+            '%s: `ref` is not a prop. Trying to access it will result ' +
+              'in `undefined` being returned. If you need to access the same ' +
+              'value within the child component, you should pass it as a different ' +
+              'prop. (https://fb.me/react-special-props)',
+            displayName
+          );
+        }
+      };
+      warnAboutAccessingRef.isReactWarning = true;
+      Object.defineProperty(props, 'ref', {
+        get: warnAboutAccessingRef,
+        configurable: true
+      });
+    }
+
+    /**
+     * 创建新的react元素的工厂方法。这不再坚持类模式，因此不要使用new来调用它。另外，没有检查实例会有用的。相反，根据symbol.for（“react.element”）测试$$typeof字段以进行检查
+     * 如果某物是反应元素。
+     * * @param {*} type
+     * @param {*} key
+     * @param {string|object} ref
+     * @param {*} self 用于检测“this”所在位置的*临时*助手与调用react.createElement时的“owner”不同，因此 可以发出警告。我们要去掉所有者并用箭头替换字符串'ref's函数，只要“this”和“owner”相同，就不会有行为改变。
+     * @param {*} source 注释对象（由蒸腾器或其他添加）指示文件名、行号和/或其他信息。
+     * @param {*} owner
+     * @param {*} props
+     * @internal
+     */
+    var ReactElement = function(type, key, ref, self, source, owner, props) {
+      var element = {
+        // 这个标签允许我们唯一地将它标识为一个React元素。
+        $$typeof: REACT_ELEMENT_TYPE,
+
+        // 属于元素的内置属性
+        type: type,
+        key: key,
+        ref: ref,
+        props: props,
+
+        // 记录负责创建此元素的组件。
+        _owner: owner
+      };
+      {
+        // 验证标志当前是可变的。我们穿上它外部后备存储器，以便我们冻结整个对象。一旦在常用的开发环境中,实现了weakmap，就可以将其替换为weakmap。
+        element._store = {};
+
+        // 为了使比较React组件更容易进行测试，我们使验证标志不可枚举（如果可能，应该包括我们在其中运行测试的每个环境），因此测试框架忽略它。
+        Object.defineProperty(element._store, 'validated', {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: false
+        });
+
+        // self和source是仅适用于开发人员的属性。
+        Object.defineProperty(element, '_self', {
+          configurable: false,
+          enumerable: false,
+          writable: false,
+          value: self
+        });
+
+        // 应考虑在两个不同位置创建的两个元素在测试中是相等的，因此我们隐藏它以避免枚举。
+        Object.defineProperty(element, '_source', {
+          configurable: false,
+          enumerable: false,
+          writable: false,
+          value: source
+        });
+        if (Object.freeze) {
+          Object.freeze(element.props);
+          Object.freeze(element);
+        }
+      }
+      return element;
+    };
+
+    /**
+     * 创建并返回给定类型的新ReactElement。
+     * See https://reactjs.org/docs/react-api.html#createelement
+     */
+
+    function createElement(type, config, children) {
+      var propName = void 0;
+
+      //  提取保留名称
+      var props = {};
+
+      var key = null;
+      var ref = null;
+      var self = null;
+      var source = null;
+
+      if (config != null) {
+        if (hasValidRef(config)) {
+          ref = config.ref;
+        }
+        if (hasValidKey(config)) {
+          key = '' + config.key;
+        }
+        self = config.__self === undefined ? null : config.__self;
+        souce = config.__source === undefined ? null : config.__source;
+        // 剩余属性将添加到新的Props对象中
+        for (propName in config) {
+          if (
+            hasOwnProperty$1.call(config, propName) &&
+            !RESERVED_PROPS.hasOwnProperty(propName)
+          ) {
+            props[propName] = config[propName];
+          }
+        }
+      }
+      // 子对象可以是多个参数，而这些参数将转移到新分配的props对象。
+      var childrenLength = arguments.length - 2;
+      if (childrenLength === 1) {
+        props.children = children;
+      } else if (childrenLength > 1) {
+        var childArray = Array(childrenLength);
+        for (var i = 0; i < childrenLength; i++) {
+          childArray[i] = arguments[i + 2];
+        }
+        {
+          if (Object.freeze) {
+            Object.freeze(childArray);
+          }
+        }
+        props.children = childArray;
+      }
+
+      // 解析默认属性
+      if (type && type.defineProps) {
+        var defaultProps = type.defaultProps;
+        for (propName in defaultProps) {
+          if (props[propName] === undefined) {
+            props[propName] = defaultProps[propName];
+          }
+        }
+      }
+      {
+        if (key || ref) {
+          var displayName =
+            typeof type === 'function'
+              ? type.displayName || type.name || 'Unknown'
+              : type;
+          if (key) {
+            defineKeyPropWarningGetter(props, displayName);
+          }
+          if (ref) {
+            defineRefPropWarningGetter(props, displayName);
+          }
+        }
+      }
+      return ReactElement(
+        type,
+        key,
+        ref,
+        self,
+        source,
+        ReactCurrentOwner.current,
+        props
+      );
+    }
+
+    /**
+     * 返回一个生成给定类型的ReactElements的函数。
+     * See https://reactjs.org/docs/react-api.html#createfactory
+     */
+
+    function cloneAndReplaceKey(oldElement, newKey) {
+      var newElement = ReactElement(
+        oldElement.type,
+        newKey,
+        oldElement.ref,
+        oldElement._self,
+        oldElement._source,
+        oldElement._owner,
+        oldElement,
+        props
+      );
+      return newElement;
+    }
+
+    /**
+     * 克隆并返回一个以元素为起点的新的reactelement。
+     * See https://reactjs.org/docs/react-api.html#cloneelement
+     */
+    function cloneElement(element, config, children) {
+      !!(element === null || element === undefined)
+        ? invariant(
+            false,
+            'React.cloneElement(...): The argument must be a React element, but you passed %s.',
+            element
+          )
+        : void 0;
+
+      var propName = void 0;
+
+      // Original props are copied
+      var props = objectAssign({}, element.props);
+
+      // 提取保留名称
+      var key = element.key;
+      var ref = element.ref;
+
+      // 自所有者被保护以来，自我被保护。
+      var self = element._self;
+
+      // 由于克隆不太可能被蒸腾器，和原始的来源可能是一个更好的指标真正的所有者。
+
+      var source = element._source;
+
+      // 除非ref被重写，否则将保留所有者
+      var owner = element._owner;
+
+      if (config != null) {
+        if (hasValidRef(config)) {
+          // 悄悄地从父元素那里偷了ref。
+          ref = config.ref;
+          owner = ReactCurrentOwner.current;
+        }
+        if (hasValidKey(config)) {
+          key = '' + config.key;
+        }
+
+        // 剩余属性覆盖现有属性
+
+        var defaultProps = void 0;
+        if (element.type && element.type.defaultProps) {
+          defaultProps = element.type.defaultProps;
+        }
+        for (propName in config) {
+          if (
+            hasOwnProperty$1.call(config, propName) &&
+            !RESERVED_PROPS.hasOwnProperty(propName)
+          ) {
+            if (config[propName] === undefined && defaultProps !== undefined) {
+              // Resolve default props
+              props[propName] = defaultProps[propName];
+            } else {
+              props[propName] = config[propName];
+            }
+          }
+        }
+      }
+
+      // 子对象可以是多个参数，而这些参数将转移到新分配的props对象。
+      var childrenLength = arguments.length - 2;
+      if (childrenLength === 1) {
+        props.children = children;
+      } else if (childrenLength > 1) {
+        var childArray = Array(childrenLength);
+        for (var i = 0; i < childrenLength; i++) {
+          childArray[i] = arguments[i + 2];
+        }
+        props.children = childArray;
+      }
+
+      return ReactElement(element.type, key, ref, self, source, owner, props);
+    }
+  }
 });
