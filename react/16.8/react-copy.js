@@ -1372,685 +1372,1813 @@ object-assign
         };
       }
     }
-
-    function unstable_unsubscribe(subscriber) {
-      if (enableSchedulerTracing) {
-        subscribers.delete(subscriber);
-        if (subscribers.size === 0) {
-          subscriberRef.current = null;
-        }
+  }
+  function unstable_unsubscribe(subscriber) {
+    if (enableSchedulerTracing) {
+      subscribers.delete(subscriber);
+      if (subscribers.size === 0) {
+        subscriberRef.current = null;
       }
     }
+  }
 
-    function onInteractionTraced(interaction) {
-      var didCatchError = false;
-      var caughtError = null;
+  function onInteractionTraced(interaction) {
+    var didCatchError = false;
+    var caughtError = null;
 
-      subscribers.forEach(function(subscriber) {
-        try {
-          subscriber.onInteractionTraced(interaction);
-        } catch (error) {
-          if (!didCatchError) {
-            didCatchError = true;
-            caughtError = error;
-          }
+    subscribers.forEach(function(subscriber) {
+      try {
+        subscriber.onInteractionTraced(interaction);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
         }
-      });
-
-      if (didCatchError) {
-        throw caughtError;
       }
-    }
+    });
 
-    function onInteractionScheduledWorkCompleted(interaction) {
-      var didCatchError = false;
-      var caughtError = null;
-      subscribers.forEach(function(subscriber) {
-        try {
-          subscriber.onInteractionScheduledWorkCompleted(interaction);
-        } catch (error) {
-          if (!didCatchError) {
-            didCatchError = true;
-            caughtError = error;
-          }
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+
+  function onInteractionScheduledWorkCompleted(interaction) {
+    var didCatchError = false;
+    var caughtError = null;
+    subscribers.forEach(function(subscriber) {
+      try {
+        subscriber.onInteractionScheduledWorkCompleted(interaction);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
         }
-      });
-
-      if (didCatchError) {
-        throw caughtError;
       }
-    }
-    function onWorkScheduled(interactions, threadID) {
-      var didCatchError = false;
-      var caughtError = null;
+    });
 
-      subscribers.forEach(function(subscriber) {
-        try {
-          subscriber.onWorkScheduled(interactions, threadID);
-        } catch (error) {
-          if (!didCatchError) {
-            didCatchError = true;
-            caughtError = error;
-          }
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+  function onWorkScheduled(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
+
+    subscribers.forEach(function(subscriber) {
+      try {
+        subscriber.onWorkScheduled(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
         }
-      });
-
-      if (didCatchError) {
-        throw caughtError;
       }
+    });
+
+    if (didCatchError) {
+      throw caughtError;
     }
+  }
 
-    function onWorkStarted(interactions, threadID) {
-      var didCatchError = false;
-      var caughtError = null;
+  function onWorkStarted(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
 
-      subscribers.forEach(function(subscriber) {
-        try {
-          subscriber.onWorkStarted(interactions, threadID);
-        } catch (error) {
-          if (!didCatchError) {
-            didCatchError = true;
-            caughtError = error;
-          }
+    subscribers.forEach(function(subscriber) {
+      try {
+        subscriber.onWorkStarted(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
         }
-      });
-
-      if (didCatchError) {
-        throw caughtError;
       }
+    });
+
+    if (didCatchError) {
+      throw caughtError;
     }
+  }
 
-    function onWorkStopped(interactions, threadID) {
-      var didCatchError = false;
-      var caughtError = null;
+  function onWorkStopped(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
 
-      subscribers.forEach(function(subscriber) {
-        try {
-          subscriber.onWorkStopped(interactions, threadID);
-        } catch (error) {
-          if (!didCatchError) {
-            didCatchError = true;
-            caughtError = error;
-          }
+    subscribers.forEach(function(subscriber) {
+      try {
+        subscriber.onWorkStopped(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
         }
-      });
-
-      if (didCatchError) {
-        throw caughtError;
       }
+    });
+
+    if (didCatchError) {
+      throw caughtError;
     }
+  }
 
-    function onWorkCanceled(interactions, threadID) {
-      var didCatchError = false;
-      var caughtError = null;
+  function onWorkCanceled(interactions, threadID) {
+    var didCatchError = false;
+    var caughtError = null;
 
-      subscribers.forEach(function(subscriber) {
-        try {
-          subscriber.onWorkCanceled(interactions, threadID);
-        } catch (error) {
-          if (!didCatchError) {
-            didCatchError = true;
-            caughtError = error;
-          }
+    subscribers.forEach(function(subscriber) {
+      try {
+        subscriber.onWorkCanceled(interactions, threadID);
+      } catch (error) {
+        if (!didCatchError) {
+          didCatchError = true;
+          caughtError = error;
         }
-      });
-
-      if (didCatchError) {
-        throw caughtError;
       }
-    }
+    });
 
+    if (didCatchError) {
+      throw caughtError;
+    }
+  }
+
+  /**
+   * 跟踪当前所有者。
+   * 当前所有者是应该拥有以下任何组件的组件目前正在建设中。
+   */
+  var ReactCurrentOwner = {
     /**
-     * 跟踪当前所有者。
-     * 当前所有者是应该拥有以下任何组件的组件目前正在建设中。
+     * @internal
+     * @type {ReactComponent}
      */
-    var ReactCurrentOwner = {
-      /**
-       * @internal
-       * @type {ReactComponent}
-       */
-      current: null
-    };
+    current: null
+  };
 
-    var BEFORE_SLASH_RE = /^(.*)[\\\/]/;
+  var BEFORE_SLASH_RE = /^(.*)[\\\/]/;
 
-    var describeComponentFrame = function(name, source, ownerName) {
-      var sourceInfo = '';
-      if (source) {
-        var path = source.fileName;
-        var fileName = path.replace(BEFORE_SLASH_RE, '');
-        {
-          // 在dev中，包括用于常见特殊情况的代码：
-          // 首选“folder/index.js”而不是“index.js”。
-          if (/^index\./.text(fileName)) {
-            var match = path.match(BEFORE_SLASH_RE);
-            if (match) {
-              var pathBeforeSlash = match[1];
-              if (pathBeforeSlash) {
-                var folderName = pathBeforeSlash.replace(BEFORE_SLASH_RE, '');
-                fileName = folderName + '/' + fileName;
-              }
-            }
-          }
-        }
-        sourceInfo = ' (at ' + fileName + ':' + source.lineNumber + ')';
-      } else if (ownerName) {
-        sourceInfo = ' (created by ' + ownerName + ')';
-      }
-      return '\n    in ' + (name || 'Unknown') + sourceInfo;
-    };
-
-    var Resolved = 1;
-
-    function refineResolvedLazyComponent(lazyComponent) {
-      return (lazyComponent._status = Resolved ? lazyComponent._result : null);
-    }
-
-    function getWrappedName(outerType, innerType, wrapperName) {
-      var functionName = innerType.displayName || innerType.name || '';
-      return (
-        outerType.displayName ||
-        (functionName !== ''
-          ? wrapperName + '(' + functionName + ')'
-          : wrapperName)
-      );
-    }
-
-    function getComponent(type) {
-      if (type === null) {
-        // 主机根,文本节点或只是类型无效。
-        return null;
-      }
+  var describeComponentFrame = function(name, source, ownerName) {
+    var sourceInfo = '';
+    if (source) {
+      var path = source.fileName;
+      var fileName = path.replace(BEFORE_SLASH_RE, '');
       {
-        if (typeof type.tag === 'number') {
-          warningWithoutStack$1(
-            false,
-            'Received an unexpected object in getComponentName(). ' +
-              'This is likely a bug in React. Please file an issue.'
-          );
-        }
-      }
-      if (typeof type === 'string') {
-        return type;
-      }
-      switch (type) {
-        case REACT_CONCURRENT_MODE_TYPE:
-          return 'ConcurrentMode';
-        case REACT_FRAGMENT_TYPE:
-          return 'Fragment';
-        case REACT_PORTAL_TYPE:
-          return 'Portal';
-        case REACT_PROFILER_TYPE:
-          return 'Profiler';
-        case REACT_STRICT_MODE_TYPE:
-          return 'StrictMode';
-        case REACT_SUSPENSE_TYPE:
-          return 'Suspense';
-      }
-
-      if (typeof type === 'object') {
-        switch (type.$$typeof) {
-          case REACT_CONTEXT_TYPE:
-            return 'Context.Consumer';
-          case REACT_PROVIDER_TYPE:
-            return 'Context.Provider';
-          case REACT_FORWARD_REF_TYPE:
-            return getWrappedName(type, type.render, 'ForwardRef');
-          case REACT_MEMO_TYPE:
-            return getComponentName(type.type);
-          case REACT_LAZY_TYPE: {
-            var thenable = type;
-            var resolvedThenable = refineResolvedLazyComponent(thenable);
-            if (resolvedThenable) {
-              return getComponentName(resolvedThenable);
+        // 在dev中，包括用于常见特殊情况的代码：
+        // 首选“folder/index.js”而不是“index.js”。
+        if (/^index\./.text(fileName)) {
+          var match = path.match(BEFORE_SLASH_RE);
+          if (match) {
+            var pathBeforeSlash = match[1];
+            if (pathBeforeSlash) {
+              var folderName = pathBeforeSlash.replace(BEFORE_SLASH_RE, '');
+              fileName = folderName + '/' + fileName;
             }
           }
         }
       }
+      sourceInfo = ' (at ' + fileName + ':' + source.lineNumber + ')';
+    } else if (ownerName) {
+      sourceInfo = ' (created by ' + ownerName + ')';
+    }
+    return '\n    in ' + (name || 'Unknown') + sourceInfo;
+  };
+
+  var Resolved = 1;
+
+  function refineResolvedLazyComponent(lazyComponent) {
+    return (lazyComponent._status = Resolved ? lazyComponent._result : null);
+  }
+
+  function getWrappedName(outerType, innerType, wrapperName) {
+    var functionName = innerType.displayName || innerType.name || '';
+    return (
+      outerType.displayName ||
+      (functionName !== ''
+        ? wrapperName + '(' + functionName + ')'
+        : wrapperName)
+    );
+  }
+
+  function getComponent(type) {
+    if (type === null) {
+      // 主机根,文本节点或只是类型无效。
       return null;
     }
-
-    var ReactDebugCurrentFrame = {};
-    var currentlyValidatingElement = null;
-
-    function setCurrentlyValidatingElement(element) {
-      {
-        currentlyValidatingElement = element;
-      }
-    }
-
     {
-      // 当前渲染器注入的堆栈实现。
-      ReactDebugCurrentFrame.getCurrentStack = null;
-      ReactDebugCurrentFrame.getStackAddendum = function() {
-        var stack = '';
-        // 在验证元素时添加额外的顶框
-        if (currentlyValidatingElement) {
-          var name = getComponentName(currentlyValidatingElement.type);
-          var owner = currentlyValidatingElement._owner;
-          stack += describeComponentFrame(
-            name,
-            currentlyValidatingElement._source,
-            owner && getComponentName(owner.type)
-          );
-        }
-
-        // 委托给特定于注入渲染器的实现
-        var impl = ReactDebugCurrentFrame.getCurrentStack;
-        if (impl) {
-          stack += impl() || '';
-        }
-        return stack;
-      };
-    }
-
-    var ReactSharedInternals = {
-      ReactcurrentDispatcher: ReactcurrentDispatcher,
-      ReactCurrentOwner: ReactCurrentOwner,
-      // 由渲染器使用，以避免在UMD包中两次绑定对象分配：
-      assign: objectAssign
-    };
-
-    {
-      // 重新导出UMD包的计划API。
-      // 这避免了在小更新中引入对新UMD全局的依赖， 因为这将是一个破坏性的更改（例如，对于所有现有的代码沙盒）。 此再出口仅适用于UMD捆绑包；
-      // CJS包使用共享的NPM包。
-      objectAssign(ReactSharedInternals, {
-        Scheduler: {
-          unstable_cancelCallback: unstable_cancelCallback,
-          unstable_shouldYield: unstable_shouldYield,
-          unstable_now: getCurrentTime,
-          unstable_scheduleCallback: unstable_scheduleCallback,
-          unstable_runWithPriority: unstable_runWithPriority,
-          unstable_next: unstable_next,
-          unstable_wrapCallback: unstable_wrapCallback,
-          unstable_getFirstCallbackNode: unstable_getFirstCallbackNode,
-          unstable_pauseExecution: unstable_pauseExecution,
-          unstable_continueExecution: unstable_continueExecution,
-          unstable_getCurrentPriorityLevel: unstable_getCurrentPriorityLevel,
-          unstable_IdlePriority: IdlePriority,
-          unstable_ImmediatePriority: ImmediatePriority,
-          unstable_LowPriority: LowPriority,
-          unstable_NormalPriority: NormalPriority,
-          unstable_UserBlockingPriority: UserBlockingPriority
-        },
-        SchedulerTracing: {
-          __interactionsRef: interactionsRef,
-          __subscriberRef: subscriberRef,
-          unstable_clear: unstable_clear,
-          unstable_getCurrent: unstable_getCurrent,
-          unstable_getThreadID: unstable_getThreadID,
-          unstable_subscribe: unstable_subscribe,
-          unstable_trace: unstable_trace,
-          unstable_unsubscribe: unstable_unsubscribe,
-          unstable_wrap: unstable_wrap
-        }
-      });
-    }
-
-    {
-      objectAssign(ReactSharedInternals, {
-        // 这些不需要被包含在生成环境
-        ReactDebugCurrentFrame: ReactDebugCurrentFrame,
-        // react dom 16.0.0的垫片仍然破坏（但未使用）。
-        // TODO: remove in React 17.0.
-        ReactComponentTreeHook: {}
-      });
-    }
-
-    /**
-     * 类似于不变量，但仅在不满足条件时记录警告。
-     * 这可用于在关键的开发环境中记录问题路径。删除生产环境的日志代码将保留相同的逻辑，遵循相同的代码路径。
-     */
-
-    var warning = warningWithoutStack$1;
-
-    {
-      warning = function(condition, format) {
-        if (condition) {
-          return;
-        }
-        var ReactDebugCurrentFrame =
-          ReactSharedInternals.ReactDebugCurrentFrame;
-        var stack = ReactDebugCurrentFrame.getStackAddendum();
-
-        for (
-          var _len = arguments.length,
-            args = Array(_len > 2 ? _len - 2 : 0),
-            _key = 2;
-          _key < _len;
-          _key++
-        ) {
-          args[_key - 2] = arguments[_key];
-        }
-        warningWithoutStack$1.apply(
-          undefined,
-          [false, format + '%s'].concat(args, [stack])
+      if (typeof type.tag === 'number') {
+        warningWithoutStack$1(
+          false,
+          'Received an unexpected object in getComponentName(). ' +
+            'This is likely a bug in React. Please file an issue.'
         );
-      };
+      }
     }
-    var warning$1 = warning;
+    if (typeof type === 'string') {
+      return type;
+    }
+    switch (type) {
+      case REACT_CONCURRENT_MODE_TYPE:
+        return 'ConcurrentMode';
+      case REACT_FRAGMENT_TYPE:
+        return 'Fragment';
+      case REACT_PORTAL_TYPE:
+        return 'Portal';
+      case REACT_PROFILER_TYPE:
+        return 'Profiler';
+      case REACT_STRICT_MODE_TYPE:
+        return 'StrictMode';
+      case REACT_SUSPENSE_TYPE:
+        return 'Suspense';
+    }
 
-    var hasOwnProperty$1 = Object.prototype.hasOwnProperty;
+    if (typeof type === 'object') {
+      switch (type.$$typeof) {
+        case REACT_CONTEXT_TYPE:
+          return 'Context.Consumer';
+        case REACT_PROVIDER_TYPE:
+          return 'Context.Provider';
+        case REACT_FORWARD_REF_TYPE:
+          return getWrappedName(type, type.render, 'ForwardRef');
+        case REACT_MEMO_TYPE:
+          return getComponentName(type.type);
+        case REACT_LAZY_TYPE: {
+          var thenable = type;
+          var resolvedThenable = refineResolvedLazyComponent(thenable);
+          if (resolvedThenable) {
+            return getComponentName(resolvedThenable);
+          }
+        }
+      }
+    }
+    return null;
+  }
 
-    var RESERVED_PROPS = {
-      key: true,
-      ref: true,
-      __self: true,
-      __source: true
+  var ReactDebugCurrentFrame = {};
+  var currentlyValidatingElement = null;
+
+  function setCurrentlyValidatingElement(element) {
+    {
+      currentlyValidatingElement = element;
+    }
+  }
+
+  {
+    // 当前渲染器注入的堆栈实现。
+    ReactDebugCurrentFrame.getCurrentStack = null;
+    ReactDebugCurrentFrame.getStackAddendum = function() {
+      var stack = '';
+      // 在验证元素时添加额外的顶框
+      if (currentlyValidatingElement) {
+        var name = getComponentName(currentlyValidatingElement.type);
+        var owner = currentlyValidatingElement._owner;
+        stack += describeComponentFrame(
+          name,
+          currentlyValidatingElement._source,
+          owner && getComponentName(owner.type)
+        );
+      }
+
+      // 委托给特定于注入渲染器的实现
+      var impl = ReactDebugCurrentFrame.getCurrentStack;
+      if (impl) {
+        stack += impl() || '';
+      }
+      return stack;
     };
+  }
 
-    var specialPropKeyWarningShown = void 0;
-    var specialPropRefWarningShown = void 0;
+  var ReactSharedInternals = {
+    ReactcurrentDispatcher: ReactcurrentDispatcher,
+    ReactCurrentOwner: ReactCurrentOwner,
+    // 由渲染器使用，以避免在UMD包中两次绑定对象分配：
+    assign: objectAssign
+  };
 
-    function hasValidRef(config) {
-      {
-        if (hasOwnProperty$1.call(config, 'ref')) {
-          var getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
-          if (getter && getter.isReacWarning) {
-            return false;
-          }
+  {
+    // 重新导出UMD包的计划API。
+    // 这避免了在小更新中引入对新UMD全局的依赖， 因为这将是一个破坏性的更改（例如，对于所有现有的代码沙盒）。 此再出口仅适用于UMD捆绑包；
+    // CJS包使用共享的NPM包。
+    objectAssign(ReactSharedInternals, {
+      Scheduler: {
+        unstable_cancelCallback: unstable_cancelCallback,
+        unstable_shouldYield: unstable_shouldYield,
+        unstable_now: getCurrentTime,
+        unstable_scheduleCallback: unstable_scheduleCallback,
+        unstable_runWithPriority: unstable_runWithPriority,
+        unstable_next: unstable_next,
+        unstable_wrapCallback: unstable_wrapCallback,
+        unstable_getFirstCallbackNode: unstable_getFirstCallbackNode,
+        unstable_pauseExecution: unstable_pauseExecution,
+        unstable_continueExecution: unstable_continueExecution,
+        unstable_getCurrentPriorityLevel: unstable_getCurrentPriorityLevel,
+        unstable_IdlePriority: IdlePriority,
+        unstable_ImmediatePriority: ImmediatePriority,
+        unstable_LowPriority: LowPriority,
+        unstable_NormalPriority: NormalPriority,
+        unstable_UserBlockingPriority: UserBlockingPriority
+      },
+      SchedulerTracing: {
+        __interactionsRef: interactionsRef,
+        __subscriberRef: subscriberRef,
+        unstable_clear: unstable_clear,
+        unstable_getCurrent: unstable_getCurrent,
+        unstable_getThreadID: unstable_getThreadID,
+        unstable_subscribe: unstable_subscribe,
+        unstable_trace: unstable_trace,
+        unstable_unsubscribe: unstable_unsubscribe,
+        unstable_wrap: unstable_wrap
+      }
+    });
+  }
+
+  {
+    objectAssign(ReactSharedInternals, {
+      // 这些不需要被包含在生成环境
+      ReactDebugCurrentFrame: ReactDebugCurrentFrame,
+      // react dom 16.0.0的垫片仍然破坏（但未使用）。
+      // TODO: remove in React 17.0.
+      ReactComponentTreeHook: {}
+    });
+  }
+
+  /**
+   * 类似于不变量，但仅在不满足条件时记录警告。
+   * 这可用于在关键的开发环境中记录问题路径。删除生产环境的日志代码将保留相同的逻辑，遵循相同的代码路径。
+   */
+
+  var warning = warningWithoutStack$1;
+
+  {
+    warning = function(condition, format) {
+      if (condition) {
+        return;
+      }
+      var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
+      var stack = ReactDebugCurrentFrame.getStackAddendum();
+
+      for (
+        var _len = arguments.length,
+          args = Array(_len > 2 ? _len - 2 : 0),
+          _key = 2;
+        _key < _len;
+        _key++
+      ) {
+        args[_key - 2] = arguments[_key];
+      }
+      warningWithoutStack$1.apply(
+        undefined,
+        [false, format + '%s'].concat(args, [stack])
+      );
+    };
+  }
+  var warning$1 = warning;
+
+  var hasOwnProperty$1 = Object.prototype.hasOwnProperty;
+
+  var RESERVED_PROPS = {
+    key: true,
+    ref: true,
+    __self: true,
+    __source: true
+  };
+
+  var specialPropKeyWarningShown = void 0;
+  var specialPropRefWarningShown = void 0;
+
+  function hasValidRef(config) {
+    {
+      if (hasOwnProperty$1.call(config, 'ref')) {
+        var getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
+        if (getter && getter.isReacWarning) {
+          return false;
         }
       }
-      return config.ref !== undefined;
     }
+    return config.ref !== undefined;
+  }
 
-    function hasValidKey(config) {
-      {
-        if (hasOwnProperty$1.call(config, 'key')) {
-          var getter = Object.getOwnPropertyDescriptor(config, 'key').get;
-          if (getter && getter.isReactWarning) {
-            return false;
-          }
+  function hasValidKey(config) {
+    {
+      if (hasOwnProperty$1.call(config, 'key')) {
+        var getter = Object.getOwnPropertyDescriptor(config, 'key').get;
+        if (getter && getter.isReactWarning) {
+          return false;
         }
       }
-      return config.key !== undefined;
     }
+    return config.key !== undefined;
+  }
 
-    function defineKeyPropWarningGetter(props, displayName) {
-      var warnAboutAccessingKey = function() {
-        if (!specialPropKeyWarningShown) {
-          specialPropKeyWarningShown = true;
-          warningWithoutStack$1(
-            false,
-            '%s: `key` is not a prop. Trying to access it will result ' +
-              'in `undefined` being returned. If you need to access the same ' +
-              'value within the child component, you should pass it as a different ' +
-              'prop. (https://fb.me/react-special-props)',
-            displayName
-          );
-        }
-      };
-      warnAboutAccessingKey.isReacWarning = true;
-      Object.defineProperty(props, 'key', {
-        get: warnAboutAccessingKey,
-        configurable: true
+  function defineKeyPropWarningGetter(props, displayName) {
+    var warnAboutAccessingKey = function() {
+      if (!specialPropKeyWarningShown) {
+        specialPropKeyWarningShown = true;
+        warningWithoutStack$1(
+          false,
+          '%s: `key` is not a prop. Trying to access it will result ' +
+            'in `undefined` being returned. If you need to access the same ' +
+            'value within the child component, you should pass it as a different ' +
+            'prop. (https://fb.me/react-special-props)',
+          displayName
+        );
+      }
+    };
+    warnAboutAccessingKey.isReacWarning = true;
+    Object.defineProperty(props, 'key', {
+      get: warnAboutAccessingKey,
+      configurable: true
+    });
+  }
+
+  function defineRefPropWarningGetter(props, displayName) {
+    var warnAboutAccessingRef = function() {
+      if (!specialPropRefWarningShown) {
+        specialPropRefWarningShown = true;
+        warningWithoutStack$1(
+          false,
+          '%s: `ref` is not a prop. Trying to access it will result ' +
+            'in `undefined` being returned. If you need to access the same ' +
+            'value within the child component, you should pass it as a different ' +
+            'prop. (https://fb.me/react-special-props)',
+          displayName
+        );
+      }
+    };
+    warnAboutAccessingRef.isReactWarning = true;
+    Object.defineProperty(props, 'ref', {
+      get: warnAboutAccessingRef,
+      configurable: true
+    });
+  }
+
+  /**
+   * 创建新的react元素的工厂方法。这不再坚持类模式，因此不要使用new来调用它。另外，没有检查实例会有用的。相反，根据symbol.for（“react.element”）测试$$typeof字段以进行检查
+   * 如果某物是反应元素。
+   * * @param {*} type
+   * @param {*} key
+   * @param {string|object} ref
+   * @param {*} self 用于检测“this”所在位置的*临时*助手与调用react.createElement时的“owner”不同，因此 可以发出警告。我们要去掉所有者并用箭头替换字符串'ref's函数，只要“this”和“owner”相同，就不会有行为改变。
+   * @param {*} source 注释对象（由蒸腾器或其他添加）指示文件名、行号和/或其他信息。
+   * @param {*} owner
+   * @param {*} props
+   * @internal
+   */
+  var ReactElement = function(type, key, ref, self, source, owner, props) {
+    var element = {
+      // 这个标签允许我们唯一地将它标识为一个React元素。
+      $$typeof: REACT_ELEMENT_TYPE,
+
+      // 属于元素的内置属性
+      type: type,
+      key: key,
+      ref: ref,
+      props: props,
+
+      // 记录负责创建此元素的组件。
+      _owner: owner
+    };
+    {
+      // 验证标志当前是可变的。我们穿上它外部后备存储器，以便我们冻结整个对象。一旦在常用的开发环境中,实现了weakmap，就可以将其替换为weakmap。
+      element._store = {};
+
+      // 为了使比较React组件更容易进行测试，我们使验证标志不可枚举（如果可能，应该包括我们在其中运行测试的每个环境），因此测试框架忽略它。
+      Object.defineProperty(element._store, 'validated', {
+        configurable: false,
+        enumerable: false,
+        writable: true,
+        value: false
       });
-    }
 
-    function defineRefPropWarningGetter(props, displayName) {
-      var warnAboutAccessingRef = function() {
-        if (!specialPropRefWarningShown) {
-          specialPropRefWarningShown = true;
-          warningWithoutStack$1(
-            false,
-            '%s: `ref` is not a prop. Trying to access it will result ' +
-              'in `undefined` being returned. If you need to access the same ' +
-              'value within the child component, you should pass it as a different ' +
-              'prop. (https://fb.me/react-special-props)',
-            displayName
-          );
-        }
-      };
-      warnAboutAccessingRef.isReactWarning = true;
-      Object.defineProperty(props, 'ref', {
-        get: warnAboutAccessingRef,
-        configurable: true
+      // self和source是仅适用于开发人员的属性。
+      Object.defineProperty(element, '_self', {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: self
       });
+
+      // 应考虑在两个不同位置创建的两个元素在测试中是相等的，因此我们隐藏它以避免枚举。
+      Object.defineProperty(element, '_source', {
+        configurable: false,
+        enumerable: false,
+        writable: false,
+        value: source
+      });
+      if (Object.freeze) {
+        Object.freeze(element.props);
+        Object.freeze(element);
+      }
     }
+    return element;
+  };
 
-    /**
-     * 创建新的react元素的工厂方法。这不再坚持类模式，因此不要使用new来调用它。另外，没有检查实例会有用的。相反，根据symbol.for（“react.element”）测试$$typeof字段以进行检查
-     * 如果某物是反应元素。
-     * * @param {*} type
-     * @param {*} key
-     * @param {string|object} ref
-     * @param {*} self 用于检测“this”所在位置的*临时*助手与调用react.createElement时的“owner”不同，因此 可以发出警告。我们要去掉所有者并用箭头替换字符串'ref's函数，只要“this”和“owner”相同，就不会有行为改变。
-     * @param {*} source 注释对象（由蒸腾器或其他添加）指示文件名、行号和/或其他信息。
-     * @param {*} owner
-     * @param {*} props
-     * @internal
-     */
-    var ReactElement = function(type, key, ref, self, source, owner, props) {
-      var element = {
-        // 这个标签允许我们唯一地将它标识为一个React元素。
-        $$typeof: REACT_ELEMENT_TYPE,
+  /**
+   * 创建并返回给定类型的新ReactElement。
+   * See https://reactjs.org/docs/react-api.html#createelement
+   */
 
-        // 属于元素的内置属性
-        type: type,
-        key: key,
-        ref: ref,
-        props: props,
+  function createElement(type, config, children) {
+    var propName = void 0;
 
-        // 记录负责创建此元素的组件。
-        _owner: owner
-      };
+    //  提取保留名称
+    var props = {};
+
+    var key = null;
+    var ref = null;
+    var self = null;
+    var source = null;
+
+    if (config != null) {
+      if (hasValidRef(config)) {
+        ref = config.ref;
+      }
+      if (hasValidKey(config)) {
+        key = '' + config.key;
+      }
+      self = config.__self === undefined ? null : config.__self;
+      souce = config.__source === undefined ? null : config.__source;
+      // 剩余属性将添加到新的Props对象中
+      for (propName in config) {
+        if (
+          hasOwnProperty$1.call(config, propName) &&
+          !RESERVED_PROPS.hasOwnProperty(propName)
+        ) {
+          props[propName] = config[propName];
+        }
+      }
+    }
+    // 子对象可以是多个参数，而这些参数将转移到新分配的props对象。
+    var childrenLength = arguments.length - 2;
+    if (childrenLength === 1) {
+      props.children = children;
+    } else if (childrenLength > 1) {
+      var childArray = Array(childrenLength);
+      for (var i = 0; i < childrenLength; i++) {
+        childArray[i] = arguments[i + 2];
+      }
       {
-        // 验证标志当前是可变的。我们穿上它外部后备存储器，以便我们冻结整个对象。一旦在常用的开发环境中,实现了weakmap，就可以将其替换为weakmap。
-        element._store = {};
-
-        // 为了使比较React组件更容易进行测试，我们使验证标志不可枚举（如果可能，应该包括我们在其中运行测试的每个环境），因此测试框架忽略它。
-        Object.defineProperty(element._store, 'validated', {
-          configurable: false,
-          enumerable: false,
-          writable: true,
-          value: false
-        });
-
-        // self和source是仅适用于开发人员的属性。
-        Object.defineProperty(element, '_self', {
-          configurable: false,
-          enumerable: false,
-          writable: false,
-          value: self
-        });
-
-        // 应考虑在两个不同位置创建的两个元素在测试中是相等的，因此我们隐藏它以避免枚举。
-        Object.defineProperty(element, '_source', {
-          configurable: false,
-          enumerable: false,
-          writable: false,
-          value: source
-        });
         if (Object.freeze) {
-          Object.freeze(element.props);
-          Object.freeze(element);
+          Object.freeze(childArray);
         }
       }
-      return element;
-    };
+      props.children = childArray;
+    }
 
-    /**
-     * 创建并返回给定类型的新ReactElement。
-     * See https://reactjs.org/docs/react-api.html#createelement
-     */
-
-    function createElement(type, config, children) {
-      var propName = void 0;
-
-      //  提取保留名称
-      var props = {};
-
-      var key = null;
-      var ref = null;
-      var self = null;
-      var source = null;
-
-      if (config != null) {
-        if (hasValidRef(config)) {
-          ref = config.ref;
+    // 解析默认属性
+    if (type && type.defineProps) {
+      var defaultProps = type.defaultProps;
+      for (propName in defaultProps) {
+        if (props[propName] === undefined) {
+          props[propName] = defaultProps[propName];
         }
-        if (hasValidKey(config)) {
-          key = '' + config.key;
+      }
+    }
+    {
+      if (key || ref) {
+        var displayName =
+          typeof type === 'function'
+            ? type.displayName || type.name || 'Unknown'
+            : type;
+        if (key) {
+          defineKeyPropWarningGetter(props, displayName);
         }
-        self = config.__self === undefined ? null : config.__self;
-        souce = config.__source === undefined ? null : config.__source;
-        // 剩余属性将添加到新的Props对象中
-        for (propName in config) {
-          if (
-            hasOwnProperty$1.call(config, propName) &&
-            !RESERVED_PROPS.hasOwnProperty(propName)
-          ) {
+        if (ref) {
+          defineRefPropWarningGetter(props, displayName);
+        }
+      }
+    }
+    return ReactElement(
+      type,
+      key,
+      ref,
+      self,
+      source,
+      ReactCurrentOwner.current,
+      props
+    );
+  }
+
+  /**
+   * 返回一个生成给定类型的ReactElements的函数。
+   * See https://reactjs.org/docs/react-api.html#createfactory
+   */
+
+  function cloneAndReplaceKey(oldElement, newKey) {
+    var newElement = ReactElement(
+      oldElement.type,
+      newKey,
+      oldElement.ref,
+      oldElement._self,
+      oldElement._source,
+      oldElement._owner,
+      oldElement,
+      props
+    );
+    return newElement;
+  }
+
+  /**
+   * 克隆并返回一个以元素为起点的新的reactelement。
+   * See https://reactjs.org/docs/react-api.html#cloneelement
+   */
+  function cloneElement(element, config, children) {
+    !!(element === null || element === undefined)
+      ? invariant(
+          false,
+          'React.cloneElement(...): The argument must be a React element, but you passed %s.',
+          element
+        )
+      : void 0;
+
+    var propName = void 0;
+
+    // Original props are copied
+    var props = objectAssign({}, element.props);
+
+    // 提取保留名称
+    var key = element.key;
+    var ref = element.ref;
+
+    // 自所有者被保护以来，自我被保护。
+    var self = element._self;
+
+    // 由于克隆不太可能被蒸腾器，和原始的来源可能是一个更好的指标真正的所有者。
+
+    var source = element._source;
+
+    // 除非ref被重写，否则将保留所有者
+    var owner = element._owner;
+
+    if (config != null) {
+      if (hasValidRef(config)) {
+        // 悄悄地从父元素那里偷了ref。
+        ref = config.ref;
+        owner = ReactCurrentOwner.current;
+      }
+      if (hasValidKey(config)) {
+        key = '' + config.key;
+      }
+
+      // 剩余属性覆盖现有属性
+
+      var defaultProps = void 0;
+      if (element.type && element.type.defaultProps) {
+        defaultProps = element.type.defaultProps;
+      }
+      for (propName in config) {
+        if (
+          hasOwnProperty$1.call(config, propName) &&
+          !RESERVED_PROPS.hasOwnProperty(propName)
+        ) {
+          if (config[propName] === undefined && defaultProps !== undefined) {
+            // Resolve default props
+            props[propName] = defaultProps[propName];
+          } else {
             props[propName] = config[propName];
           }
         }
       }
-      // 子对象可以是多个参数，而这些参数将转移到新分配的props对象。
-      var childrenLength = arguments.length - 2;
-      if (childrenLength === 1) {
-        props.children = children;
-      } else if (childrenLength > 1) {
-        var childArray = Array(childrenLength);
-        for (var i = 0; i < childrenLength; i++) {
-          childArray[i] = arguments[i + 2];
-        }
+    }
+
+    // 子对象可以是多个参数，而这些参数将转移到新分配的props对象。
+    var childrenLength = arguments.length - 2;
+    if (childrenLength === 1) {
+      props.children = children;
+    } else if (childrenLength > 1) {
+      var childArray = Array(childrenLength);
+      for (var i = 0; i < childrenLength; i++) {
+        childArray[i] = arguments[i + 2];
+      }
+      props.children = childArray;
+    }
+
+    return ReactElement(element.type, key, ref, self, source, owner, props);
+  }
+
+  /**
+   * 验证对象是否为ReactElement。
+   *  See https://reactjs.org/docs/react-api.html#isvalidelement
+   * @param {?object} object
+   * @return {boolean} True if `object` is a ReactElement.
+   * @final
+   */
+  function isValidElement(object) {
+    return (
+      typeof object === 'object' &&
+      object !== null &&
+      object.$$typeof === REACT_ELEMENT_TYPE
+    );
+  }
+
+  var SEPARATOR = '.';
+  var SUBSEPARATOR = ':';
+
+  /**
+   * 转义和包装密钥，以便安全地用作反应
+   * @param {string} key to be escaped.
+   * @return {string} the escaped key.
+   */
+  function escape(key) {
+    var escapeRegex = /[=:]/g;
+    var escaperLookup = {
+      '-': '=0',
+      ':': '=2'
+    };
+    var escapedString = ('' + key).replace(escapeRegex, function(match) {
+      return escaperLookup[match];
+    });
+    return '$' + escapedString;
+  }
+
+  /**
+   * TODO: 测试单个子级和具有一个项的数组是否具有相同的键模式。
+   */
+  var didWarnAboutMap = false;
+  var userProvidedKeyEscapedRegex = /\/+/g;
+  function escapeUserProvidedKey(text) {
+    return ('' + text).replace(userProvidedKeyEscapedRegex, '$&/');
+  }
+
+  var POOL_SIZE = 10;
+  var traverseContextPool = [];
+  function getPooledTraverseContext(
+    mapResult,
+    keyPrefix,
+    mapFunction,
+    mapContext
+  ) {
+    if (traverseContextPool.length) {
+      var traverseContext = traverseContextPool.pop();
+      traverseContext.result = mapResult;
+      traverseContext.keyPrefix = keyPrefix;
+      traverseContext.func = mapFunction;
+      traverseContext.context = mapContext;
+      traverseContext.count = 0;
+      return traverseContext;
+    } else {
+      return {
+        result: mapResult,
+        keyPrefix: keyPrefix,
+        func: mapFunction,
+        context: mapContext,
+        count: 0
+      };
+    }
+  }
+
+  function releaseTraverseContext(traverseContext) {
+    traverseContext.result = null;
+    traverseContext.keyPrefix = null;
+    traverseContext.func = null;
+    traverseContext.context = null;
+    traverseContext.count = 0;
+    if (traverseContextPool.length < POOL_SIZE) {
+      traverseContextPool.push(traverseContext);
+    }
+  }
+
+  /**
+   * @param {?*} children Children tree container.
+   * @param {!string} nameSoFar Name of the key path so far.
+   * @param {!function} callback Callback to invoke with each child found.
+   * @param {?*} traverseContext Used to pass information throughout the traversal
+   * process.
+   * @return {!number} The number of children in this subtree.
+   */
+  function traverseAllChildrenImpl(
+    children,
+    nameSoFar,
+    callback,
+    traverseContext
+  ) {
+    var type = typeof children;
+    if (type === 'undefined' || type === 'boolean') {
+      // 以上都被视为null。
+      children = nnull;
+    }
+    var invokeCallback = false;
+
+    if (children === null) {
+      invokeCallback = true;
+    } else {
+      switch (type) {
+        case 'string':
+        case 'number':
+          invokeCallback = true;
+          break;
+        case 'object':
+          switch (children.$$typeof) {
+            case REACT_ELEMENT_TYPE:
+            case REACT_PORTAL_TYPE:
+              invokeCallback = true;
+          }
+      }
+    }
+
+    if (invokeCallback) {
+      callback(
+        traverseContext,
+        children,
+        // 如果它是唯一的子级，则将该名称视为包装在数组中这样，如果子级的数目增加，就一致了。
+        nameSoFar === '' ? separator + getcomponentKey(children, 0) : nameSoFar
+      );
+      return 1;
+    }
+
+    var child = void 0;
+    var nextName = void 0;
+    var subtreeCount = 0; // 在当前子树中找到的子级计数
+    var nextNamePrefix = '' ? SEPARATOR : nameSoFar + SUBSEPARATOR;
+
+    if (Array.isArray(children)) {
+      for (var i = 0; i < children.length; i++) {
+        child = children[i];
+        nextName = nextNamePrefix + getcomponentKey(child, i);
+        subtreeCount += traverseAllChildrenImpl(
+          child,
+          nextName,
+          callback,
+          traverseContext
+        );
+      }
+    } else {
+      var iteratorFn = getIteratorFn(children);
+      if (typeof iteratorFn === 'function') {
         {
-          if (Object.freeze) {
-            Object.freeze(childArray);
+          // 警告将地图用作子项
+          if (iteratorFn === children.entries) {
+            !didWarnAboutMap
+              ? warning$1(
+                  false,
+                  'Using Maps as children is unsupported and will likely yield ' +
+                    'unexpected results. Convert it to a sequence/iterable of keyed ' +
+                    'ReactElements instead.'
+                )
+              : void 0;
+            didWarnAboutMaps = true;
+          } else if (type === 'object') {
+            var addendum = '';
+            {
+              addendum =
+                ' If you meant to render a collection of children, use an array ' +
+                'instead.' +
+                ReactDebugCurrentFrame.getStackAddendum();
+            }
+            var childrenString = '' + children;
+            invariant(
+              false,
+              'Objects are not valid as a React child (found: %s).%s',
+              childrenString === '[object Object]'
+                ? 'object with keys {' + Object.keys(children).join(', ') + '}'
+                : childrenString,
+              addendum
+            );
           }
         }
-        props.children = childArray;
       }
+    }
+    return subtreeCount;
+  }
+  /**
+   * 遍历通常指定为“props.children”的子级，但也可以通过属性指定：
+   *
+   * - `traverseAllChildren(this.props.children, ...)`
+   * - `traverseAllChildren(this.props.leftPanelChildren, ...)`
+   *
+   * “traversecontext”是通过整个遍历。它可以用来存储积累或其他任何回调可能会发现相关。
+   *
+   * @param {?*} children Children tree object.
+   * @param {!function} callback To invoke upon traversing each child.
+   * @param {?*} traverseContext Context for traversal.
+   * @return {!number} The number of children in this subtree.
+   */
+  function traverseAllChildren(children, callback, traverseContext) {
+    if (children == null) {
+      return 0;
+    }
+    return traverseAllChildrenImpl(children, '', callback, traverseContext);
+  }
 
-      // 解析默认属性
-      if (type && type.defineProps) {
-        var defaultProps = type.defaultProps;
-        for (propName in defaultProps) {
-          if (props[propName] === undefined) {
-            props[propName] = defaultProps[propName];
-          }
-        }
+  /**
+   * 生成一个键字符串，用于标识集合中的组件。
+   *
+   * @param {*} component A component that could contain a manual key.
+   * @param {number} index Index that is used if a manual key is not provided.
+   * @return {string}
+   */
+  function getComponentKey(component, index) {
+    // 在这里做排版检查，因为我们盲目地称之为排版。我们要确保我们不会阻止未来潜在的ES API。
+    if (
+      typeof component === 'object' &&
+      component !== null &&
+      component.key !== null
+    ) {
+      // 显式键
+      return escape(component.key);
+    }
+    // 由集合中的索引确定的隐式键
+    return index.toString(36);
+  }
+
+  function forEachSingleChild(bookKeeping, child, name) {
+    var func = bookKeeping.func,
+      context = bookKeeping.context;
+
+    func.call(context, child, bookKeeping.count++);
+  }
+
+  /**
+   * 循环访问通常指定为“props.children”的子级。
+   *
+   * See https://reactjs.org/docs/react-api.html#reactchildrenforeach
+   *
+   * The provided forEachFunc(child, index) will be called for each
+   * leaf child.
+   *
+   * @param {?*} children Children tree container.
+   * @param {function(*, int)} forEachFunc
+   * @param {*} forEachContext Context for forEachContext.
+   */
+  function forEachchildren(children, forEachFunc, forEachContext) {
+    if (children == null) {
+      return children;
+    }
+    var traverseContext = getPooledTraverseContext(
+      null,
+      null,
+      forEachFunc,
+      forEachContext
+    );
+    traverseAllChildren(children, forEachSingleChild, traverseContext);
+    releaseTraverseContext(traverseContext);
+  }
+
+  function mapSingleChildIntoContext(bookKeeping, child, childKey) {
+    var result = bookKeeping.result,
+      keyPrefix = bookKeeping.keyPrefix,
+      func = bookKeeping.func,
+      context = bookKeeping.context;
+
+    var mappedChild = func.call(context, child, bookKeeping.count++);
+    if (Array.isArray(mappedChild)) {
+      mapIntoWithKeyPrefixInternal(mappedChild, result, childKey, function(c) {
+        return c;
+      });
+    } else if (mappedChild != null) {
+      if (isValidElement(mappedChild)) {
+        mappedChild = cloneAndReplaceKey(
+          mappedChild,
+          // Keep both the (mapped) and old keys if they differ, just as
+          // traverseAllChildren used to do for objects as children
+          keyPrefix +
+            (mappedChild.key && (!child || child.key !== mappedChild.key)
+              ? escapeUserProvidedKey(mappedChild.key) + '/'
+              : '') +
+            childKey
+        );
       }
+      result.push(mappedChild);
+    }
+  }
+
+  /**
+   * Maps children that are typically specified as `props.children`.
+   *
+   * See https://reactjs.org/docs/react-api.html#reactchildrenmap
+   *
+   * The provided mapFunction(child, key, index) will be called for each
+   * leaf child.
+   *
+   * @param {?*} children Children tree container.
+   * @param {function(*, int)} func The map function.
+   * @param {*} context Context for mapFunction.
+   * @return {object} Object containing the ordered map of results.
+   */
+  function mapChildren(children, func, context) {
+    if (children == null) {
+      return children;
+    }
+    var result = [];
+    mapIntoWithKeyPrefixInternal(children, result, null, func, context);
+    return result;
+  }
+  /**
+   * Count the number of children that are typically specified as
+   * `props.children`.
+   *
+   * See https://reactjs.org/docs/react-api.html#reactchildrencount
+   *
+   * @param {?*} children Children tree container.
+   * @return {number} The number of children.
+   */
+  function countChildren(children) {
+    return traverseAllChildren(
+      children,
+      function() {
+        return null;
+      },
+      null
+    );
+  }
+
+  /**
+   * 扁平化子对象（通常指定为“props.children”）和 返回一个具有适当重设键的子级的数组。
+   * See https://reactjs.org/docs/react-api.html#reactchildrentoarray
+   */
+  function toArray(children) {
+    var result = [];
+    mapIntoWithKeyPrefixInternal(children, result, null, function(child) {
+      return child;
+    });
+    return result;
+  }
+
+  /**
+   * 返回子集合中的第一个子集合，并在其中验证集合中只有一个子级。
+   *
+   * See https://reactjs.org/docs/react-api.html#reactchildrenonly
+   *
+   * 此函数的当前实现假定单个子级传递时没有包装，但此助手函数的目的是抽象出儿童的特殊结构。
+   * @param {?object} children Child collection structure.
+   * @return {ReactElement} The first and only `ReactElement` contained in the
+   * structure.
+   */
+  function onlyChild(children) {
+    !isValidElement(children)
+      ? invariant(
+          false,
+          'React.Children.only expected to receive a single React element child.'
+        )
+      : void 0;
+    return children;
+  }
+
+  function createContext(defaultValue, calculateChangedBits) {
+    if (calculateChangedBits === undefined) {
+      calculateChangedBits = null;
+    } else {
       {
-        if (key || ref) {
-          var displayName =
-            typeof type === 'function'
-              ? type.displayName || type.name || 'Unknown'
-              : type;
-          if (key) {
-            defineKeyPropWarningGetter(props, displayName);
+        !(
+          calculateChangedBits === null ||
+          typeof calculateChangedBits === 'function'
+        )
+          ? warningWithoutStack$1(
+              false,
+              'createContext: Expected the optional second argument to be a ' +
+                'function. Instead received: %s',
+              calculateChangedBits
+            )
+          : void 0;
+      }
+    }
+  }
+
+  function lazy(ctor) {
+    var lazyType = {
+      $$typeof: REACT_LAZY_TYPE,
+      _ctor: ctor,
+      // react使用这些字段存储结果。
+      _status: -1,
+      _result: null
+    };
+    {
+      // 在生产中，这只会将其设置在对象上。
+      var defaultProps = void 0;
+      var propTypes = void 0;
+      Object.defineProperties(lazyType, {
+        defaultProps: {
+          configurable: true,
+          get: function() {
+            return defaultProps;
+          },
+          set: function(newDefaultProps) {
+            warning$1(
+              false,
+              'React.lazy(...): It is not supported to assign `defaultProps` to ' +
+                'a lazy component import. Either specify them where the component ' +
+                'is defined, or create a wrapping component around it.'
+            );
+            defaultProps = newDefaultProps;
+            // 更紧密地匹配生产行为：
+            Object.defineProperty(lazyType, 'defaultProps', {
+              enumerable: true
+            });
           }
-          if (ref) {
-            defineRefPropWarningGetter(props, displayName);
+        },
+        propTypes: {
+          configurable: true,
+          get: function() {
+            return propTypes;
+          },
+          set: function(newPropTypes) {
+            warning$1(
+              false,
+              'React.lazy(...): It is not supported to assign `propTypes` to ' +
+                'a lazy component import. Either specify them where the component ' +
+                'is defined, or create a wrapping component around it.'
+            );
+            propTypes = newPropTypes;
+            // Match production behavior more closely:
+            Object.defineProperty(lazyType, 'propTypes', {
+              enumerable: true
+            });
           }
         }
+      });
+    }
+    return lazyType;
+  }
+
+  function forwardRef(render) {
+    {
+      if (render != null && render.$$typeof === REACT_MEMO_TYPE) {
+        warningWithoutStack$1(
+          false,
+          'forwardRef requires a render function but received a `memo` ' +
+            'component. Instead of forwardRef(memo(...)), use ' +
+            'memo(forwardRef(...)).'
+        );
+      } else if (typeof render !== 'function') {
+        warningWithoutStack$1(
+          false,
+          'forwardRef requires a render function but was given %s.',
+          render === null ? 'null' : typeof render
+        );
+      } else {
+        !//不对0个参数发出警告，因为这可能是由于使用了“arguments”对象所致
+        (render.length === 0 || render.length === 2)
+          ? warningWithoutStack$1(
+              false,
+              'forwardRef render functions accept exactly two parameters: props and ref. %s',
+              render.length === 1
+                ? 'Did you forget to use the ref parameter?'
+                : 'Any additional parameter will be undefined.'
+            )
+          : void 0;
       }
-      return ReactElement(
-        type,
-        key,
-        ref,
-        self,
-        source,
-        ReactCurrentOwner.current,
-        props
-      );
+
+      if (render != null) {
+        !(render.defaultProps == null && render.propTypes == null)
+          ? warningWithoutStack$1(
+              false,
+              'forwardRef render functions do not support propTypes or defaultProps. ' +
+                'Did you accidentally pass a React component?'
+            )
+          : void 0;
+      }
     }
+    return {
+      $$typeof: REACT_FORWARD_REF_TYPE,
+      render: render
+    };
+  }
 
-    /**
-     * 返回一个生成给定类型的ReactElements的函数。
-     * See https://reactjs.org/docs/react-api.html#createfactory
-     */
+  function isValidElementType(type) {
+    return (
+      typeof type === 'string' ||
+      typeof type === 'function' ||
+      // 注：如果是多面填充，它的类型可能不是“symbol”或“number”。
+      type === REACT_FRAGMENT_TYPE ||
+      type === REACT_CONCURRENT_MODE_TYPE ||
+      type === REACT_PROFILER_TYPE ||
+      type === REACT_STRICT_MODE_TYPE ||
+      type === REACT_SUSPENSE_TYPE ||
+      (typeof type === 'object' &&
+        type !== null &&
+        (type.$$typeof === REACT_LAZY_TYPE ||
+          type.$$typeof === REACT_MEMO_TYPE ||
+          type.$$typeof === REACT_PROVIDER_TYPE ||
+          type.$$typeof === REACT_CONTEXT_TYPE ||
+          type.$$typeof === REACT_FORWARD_REF_TYPE))
+    );
+  }
 
-    function cloneAndReplaceKey(oldElement, newKey) {
-      var newElement = ReactElement(
-        oldElement.type,
-        newKey,
-        oldElement.ref,
-        oldElement._self,
-        oldElement._source,
-        oldElement._owner,
-        oldElement,
-        props
-      );
-      return newElement;
+  function memo(type, compare) {
+    {
+      if (!isValidElementType(type)) {
+        warningWithoutStack$1(
+          false,
+          'memo: The first argument must be a component. Instead ' +
+            'received: %s',
+          type === null ? 'null' : typeof type
+        );
+      }
     }
+    return {
+      $$typeof: REACT_MEMO_TYPE,
+      type: type,
+      compare: compare === undefined ? null : compare
+    };
+  }
 
-    /**
-     * 克隆并返回一个以元素为起点的新的reactelement。
-     * See https://reactjs.org/docs/react-api.html#cloneelement
-     */
-    function cloneElement(element, config, children) {
-      !!(element === null || element === undefined)
-        ? invariant(
+  function resolveDispatcher() {
+    var dispatcher = ReactCurrentDispatcher.current;
+    !(dispatcher !== null)
+      ? invariant(
+          false,
+          'Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://fb.me/react-invalid-hook-call for tips about how to debug and fix this problem.'
+        )
+      : void 0;
+    return dispatcher;
+  }
+
+  function useContext(Context, unstable_observedBits) {
+    var dispatcher = resolveDispatcher();
+    {
+      !(unstable_observedBits === undefined)
+        ? warning$1(
             false,
-            'React.cloneElement(...): The argument must be a React element, but you passed %s.',
-            element
+            'useContext() second argument is reserved for future ' +
+              'use in React. Passing it is not supported. ' +
+              'You passed: %s.%s',
+            unstable_observedBits,
+            typeof unstable_observedBits === 'number' &&
+              Array.isArray(arguments[2])
+              ? '\n\nDid you call array.map(useContext)? ' +
+                  'Calling Hooks inside a loop is not supported. ' +
+                  'Learn more at https://fb.me/rules-of-hooks'
+              : ''
           )
         : void 0;
 
-      var propName = void 0;
-
-      // Original props are copied
-      var props = objectAssign({}, element.props);
-
-      // 提取保留名称
-      var key = element.key;
-      var ref = element.ref;
-
-      // 自所有者被保护以来，自我被保护。
-      var self = element._self;
-
-      // 由于克隆不太可能被蒸腾器，和原始的来源可能是一个更好的指标真正的所有者。
-
-      var source = element._source;
-
-      // 除非ref被重写，否则将保留所有者
-      var owner = element._owner;
-
-      if (config != null) {
-        if (hasValidRef(config)) {
-          // 悄悄地从父元素那里偷了ref。
-          ref = config.ref;
-          owner = ReactCurrentOwner.current;
+      // TODO: 为无效值添加更一般的警告。
+      if (Context._context !== undefined) {
+        var realContext = Context._context;
+        // 不要删除重复数据，因为这会导致bug在现有的代码中不应该使用这个。
+        if (realContext.Consumer === Context) {
+          warning$1(
+            false,
+            'Calling useContext(Context.Consumer) is not supported, may cause bugs, and will be ' +
+              'removed in a future major release. Did you mean to call useContext(Context) instead?'
+          );
+        } else if (realContext.Provider === Context) {
+          warning$1(
+            false,
+            'Calling useContext(Context.Provider) is not supported. ' +
+              'Did you mean to call useContext(Context) instead?'
+          );
         }
-        if (hasValidKey(config)) {
-          key = '' + config.key;
-        }
+      }
+    }
+    return dispatcher.useContext(Context, unstable_observedBits);
+  }
 
-        // 剩余属性覆盖现有属性
+  function useState(initialState) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useState(initialState);
+  }
 
-        var defaultProps = void 0;
-        if (element.type && element.type.defaultProps) {
-          defaultProps = element.type.defaultProps;
-        }
-        for (propName in config) {
+  function useReducer(reducer, initialArg, init) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useReducer(reducer, initialArg, init);
+  }
+
+  function useRef(initialValue) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useRef(initialValue);
+  }
+
+  function useEffect(create, inputs) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useEffect(create, inputs);
+  }
+
+  function useLayoutEffect(create, inputs) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useLayoutEffect(create, inputs);
+  }
+
+  function useCallback(callback, inputs) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useCallback(callback, inputs);
+  }
+
+  function useMemo(create, inputs) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useMemo(create, inputs);
+  }
+
+  function useImperativeHandle(ref, create, inputs) {
+    var dispatcher = resolveDispatcher();
+    return dispatcher.useImperativeHandle(ref, create, inputs);
+  }
+
+  function useDebugValue(value, formatterFn) {
+    {
+      var dispatcher = resolveDispatcher();
+      return dispatcher.useDebugValue(value, formatterFn);
+    }
+  }
+
+  /**
+   * Copyright (c) 2013-present, Facebook, Inc.
+   *
+   * 此源代码是根据在此源树根目录中的许可证文件。
+   */
+  var ReactPropTypesSecret$1 = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
+
+  var ReactPropTypesSecret_1 = ReactPropTypesSecret$1;
+
+  /**
+   * Copyright (c) 2013-present, Facebook, Inc.
+   *
+   * 此源代码是根据在此源树根目录中的许可证文件。
+   */
+
+  var printWarning$1 = function() {};
+
+  {
+    var ReactPropTypesSecret = ReactPropTypesSecret_1;
+    var loggedTypeFailures = {};
+
+    printWarning$1 = function(text) {
+      var message = 'Warning: ' + text;
+      if (typeof console !== 'undefined') {
+        console.error(message);
+      }
+      try {
+        // --- Welcome to debugging React ---
+        // 为了方便使用此堆栈，引发了此错误找到引发此警告的调用网站。
+        throw new Error(message);
+      } catch (x) {}
+    };
+  }
+
+  /**
+   * 断言这些值与类型规范匹配。
+   * 错误信息会被存储，并且只会显示一次。
+   *
+   * @param {object} typeSpecs Map of name to a ReactPropType
+   * @param {object} values Runtime values that need to be type-checked
+   * @param {string} location e.g. "prop", "context", "child context"
+   * @param {string} componentName Name of the component for error messages.
+   * @param {?Function} getStack Returns the component stack.
+   * @private
+   */
+  function checkPropTypes(
+    typeSpecs,
+    values,
+    location,
+    componentName,
+    getStack
+  ) {
+    {
+      for (var typespecName in typeSpecs) {
+        if (typeSpecs.hasOwnProperty(typespecName)) {
+          var error;
+          // prop类型验证可能会引发。万一有，我们不想在渲染阶段失败，在此之前它没有失败。所以我们记录下来。
+          // 这些东西清理干净后，我们就让他们抛出。
+          try {
+            // 这是故意捕获的不变量。是一样的没有此语句的行为，除非有更好的消息。
+            if (typeof typeSpecs[typespecName] !== 'function') {
+              var err = Error(
+                (componentName || 'React class') +
+                  ': ' +
+                  location +
+                  ' type `' +
+                  typeSpecName +
+                  '` is invalid; ' +
+                  'it must be a function, usually from the `prop-types` package, but received `' +
+                  typeof typeSpecs[typeSpecName] +
+                  '`.'
+              );
+              err.name = 'Invariant Violation';
+              throw err;
+            }
+            error = typeSpecs[typespecName](
+              values,
+              typeSpecName,
+              componentName,
+              location,
+              null,
+              ReactPropTypesSecret
+            );
+          } catch (ex) {
+            error = ex;
+          }
+          if (error && !(error instanceof Error)) {
+            printWarning$1(
+              (componentName || 'React class') +
+                ': type specification of ' +
+                location +
+                ' `' +
+                typeSpecName +
+                '` is invalid; the type checker ' +
+                'function must return `null` or an `Error` but returned a ' +
+                typeof error +
+                '. ' +
+                'You may have forgotten to pass an argument to the type checker ' +
+                'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' +
+                'shape all require an argument).'
+            );
+          }
           if (
-            hasOwnProperty$1.call(config, propName) &&
-            !RESERVED_PROPS.hasOwnProperty(propName)
+            error instanceof Error &&
+            !(error.message in loggedTypeFailures)
           ) {
-            if (config[propName] === undefined && defaultProps !== undefined) {
-              // Resolve default props
-              props[propName] = defaultProps[propName];
-            } else {
-              props[propName] = config[propName];
+            // 只监视一次此故障，因为相同的错误。
+            loggedTypeFailures[error.message] = true;
+            var stack = getStack ? getStack() : '';
+            printWarning$1(
+              'Failed ' +
+                location +
+                ' type: ' +
+                error.message +
+                (stack != null ? stack : '')
+            );
+          }
+        }
+      }
+    }
+  }
+
+  var checkPropTypes_1 = checkPropTypes;
+
+  /**
+   * ReactElementValidator在元素工厂周围提供包装验证传递给元素的属性。这是为了仅在dev中使用，可以由语言的静态类型检查器替换支持它。
+   */
+
+  var propTypesMisspellWarningShown = void 0;
+
+  {
+    propTypesMisspellWarningShown = false;
+  }
+
+  function getDeclarationErrorAddendum() {
+    if (ReactCurrentOwner.current) {
+      var name = getComponentName(ReactCurrentOwner.current.type);
+      if (name) {
+        return '\n\nCheck the render method of `' + name + '`.';
+      }
+    }
+    return '';
+  }
+
+  function getSourceInfoErrorAddendum(elementProps) {
+    if (
+      elementProps !== null &&
+      elementProps !== undefined &&
+      elementProps.__source !== undefined
+    ) {
+      var source = elementProps.__source;
+      var fileName = source.fileName.replace(/^.*[\\\/]/, '');
+      var lineNumber = source.lineNumber;
+      return '\n\nCheck your code at ' + fileName + ':' + lineNumber + '';
+    }
+    return '';
+  }
+
+  /**
+   * 如果没有在子元素的动态数组上显式设置键，则发出警告；或者对象键无效。这样我们就可以跟踪更新。
+   */
+  var ownerHasKeyUseWarning = {};
+
+  function getCurrentComponentErrorInfo(parentType) {
+    var info = getDeclarationErrorAddendum();
+    if (!info) {
+      var parentName =
+        typeof parentType === 'string'
+          ? parentType
+          : parentType.displayName || parentType.name;
+      if (parentName) {
+        info =
+          '\n\nCheck the top-level render call using <' + parentName + '>.';
+      }
+    }
+    return info;
+  }
+
+  /**
+   * 如果元素未分配显式键，则发出警告。
+   * 此元素在数组中。阵列可以增大和缩小或重新排序。
+   * 所有尚未验证的子项都必须为其分配“密钥”属性。
+   * 缓存了错误状态，因此发出警告只显示一次。
+   *
+   * @internal
+   * @param {ReactElement} element Element that requires a key.
+   * @param {*} parentType element's parent's type.
+   */
+  function validateExplicitKey(element, parentType) {
+    if (!element._store || element._store.validated || element.key !== null) {
+      return;
+    }
+    element._store.validated = true;
+
+    var currentComponentErrorInfo = getCurrentComponentErrorInfo(parentType);
+    if (ownerHasKeyUseWarning[currentComponentErrorInfo]) {
+      return;
+    }
+    ownerHasKeyUseWarning[currentComponentErrorInfo] = true;
+
+    // 通常现在的拥有者是罪犯，但如果它接受孩子作为属性，它可能是负责给它分配一个键。
+    var childOwner = '';
+    if (
+      element &&
+      element._owner &&
+      element._owner !== ReactCurrentOwner.current
+    ) {
+      // 提供最初创建此子级的组件。
+      childOwner =
+        ' It was passed a child from ' +
+        getComponentName(element._owner.type) +
+        '.';
+    }
+
+    setCurrentlyValidatingElement(element);
+    {
+      warning$1(
+        false,
+        'Each child in a list should have a unique "key" prop.' +
+          '%s%s See https://fb.me/react-warning-keys for more information.',
+        currentComponentErrorInfo,
+        childOwner
+      );
+    }
+  }
+
+  /**
+   * 确保在静态位置传递每个元素，定义了显式键属性或在对象文本中的数组具有有效的键属性。
+   *
+   * @internal
+   * @param {ReactNode} node Statically passed child of any type.
+   * @param {*} parentType node's parent's type.
+   */
+  function validateChildKeys(node, parentType) {
+    if (typeof node !== 'object') {
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (var i = 0; i < node.length; i++) {
+        var child = node[i];
+        if (isValidElement(child)) {
+          validateExplicitKey(child, parentType);
+        }
+      }
+    } else if (isValidElement(node)) {
+      // 此元素是在有效位置传递的。
+      if (node._store) {
+        node._store.validated = true;
+      }
+    } else if (node) {
+      var iteratorFn = getIteratorFn(node);
+      if (typeof iteratorFn === 'function') {
+        // 用于提供隐式键的入口迭代器，但现在我们稍后会为他们单独打印一个警告。
+        if (iteratorFn !== node.entries) {
+          var iterator = iteratorFn.call(node);
+          var step = void 0;
+          while (!(step = iterator.next()).done) {
+            if (isValidElement(step.value)) {
+              validateExplicitKey(step.value, parentType);
             }
           }
         }
       }
-
-      // 子对象可以是多个参数，而这些参数将转移到新分配的props对象。
-      var childrenLength = arguments.length - 2;
-      if (childrenLength === 1) {
-        props.children = children;
-      } else if (childrenLength > 1) {
-        var childArray = Array(childrenLength);
-        for (var i = 0; i < childrenLength; i++) {
-          childArray[i] = arguments[i + 2];
-        }
-        props.children = childArray;
-      }
-
-      return ReactElement(element.type, key, ref, self, source, owner, props);
     }
   }
+
+  /**
+   * 给定一个元素，验证其props是否遵循proptypes定义，由类型提供。
+   *
+   * @param {ReactElement} element
+   */
+  function validatePropTypes(params) {
+    var type = element.type;
+    if (type === null || type === undefined || typeof type === 'string') {
+      return;
+    }
+    var name = getComponentName(type);
+    var propTypes = void 0;
+    if (typeof type === 'function') {
+      propTypes = type.propTypes;
+    } else if (
+      typeof type === 'object' &&
+      (type.$$typeof === REACT_FORWARD_REF_TYPE ||
+        // 注意：备忘录只检查这里的外部道具。 内部props在调节器中检查。
+        type.$$typeof === REACT_MEMO_TYPE)
+    ) {
+      propTypes = type.propTypes;
+    } else {
+      return;
+    }
+    if (propTypes) {
+      setCurrentlyValidatingElement(element);
+      checkPropTypes_1(
+        propTypes,
+        element.props,
+        'prop',
+        name,
+        ReactDebugCurrentFrame.getStackAddendum
+      );
+      setCurrentlyValidatingElement(null);
+    } else if (type.propTypes !== undefined && !propTypesMisspellWarningShown) {
+      propTypesMisspellWarningShown = true;
+      warningWithoutStack$1(
+        false,
+        'Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?',
+        name || 'Unknown'
+      );
+    }
+    if (typeof type.getDefaultProps === 'function') {
+      !type.getDefaultProps.isReactClassApproved
+        ? warningWithoutStack$1(
+            false,
+            'getDefaultProps is only used on classic React.createClass ' +
+              'definitions. Use a static property named `defaultProps` instead.'
+          )
+        : void 0;
+    }
+  }
+
+  /**
+   * 给定一个Fragment，验证它只能提供Fragment属性
+   * @param {ReactElement} fragment
+   */
+  function validateFragmentProps(fragment) {
+    setCurrentlyValidatingElement(fragment);
+
+    var keys = Object.keys(fragment.props);
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      if (key !== 'children' && key !== 'key') {
+        warning$1(
+          false,
+          'Invalid prop `%s` supplied to `React.Fragment`. ' +
+            'React.Fragment can only have `key` and `children` props.',
+          key
+        );
+        break;
+      }
+    }
+
+    if (fragment.ref !== null) {
+      warning$1(false, 'Invalid attribute `ref` supplied to `React.Fragment`.');
+    }
+
+    setCurrentlyValidatingElement(null);
+  }
+
+  function createElementWithValidation(type, props, children) {
+    var validType = isValidElementType(type);
+
+    // 在这种情况下，我们会发出警告，但不要抛出。我们期望元素的创建成功，渲染中可能会出现错误。
+    if (!validType) {
+      var info = '';
+      if (
+        type === undefined ||
+        (typeof type === 'object' &&
+          type !== null &&
+          Object.keys(type).length === 0)
+      ) {
+        info +=
+          ' You likely forgot to export your component from the file ' +
+          "it's defined in, or you might have mixed up default and named imports.";
+      }
+
+      var sourceInfo = getSourceInfoErrorAddendum(props);
+      if (sourceInfo) {
+        info += sourceInfo;
+      } else {
+        info += getDeclarationErrorAddendum();
+      }
+
+      var typeString = void 0;
+      if (type === null) {
+        typeString = 'null';
+      } else if (Array.isArray(type)) {
+        typeString = 'array';
+      } else if (type !== undefined && type.$$typeof === REACT_ELEMENT_TYPE) {
+        typeString = '<' + (getComponentName(type.type) || 'Unknown') + ' />';
+        info =
+          ' Did you accidentally export a JSX literal instead of a component?';
+      } else {
+        typeString = typeof type;
+      }
+
+      warning$1(
+        false,
+        'React.createElement: type is invalid -- expected a string (for ' +
+          'built-in components) or a class/function (for composite ' +
+          'components) but got: %s.%s',
+        typeString,
+        info
+      );
+    }
+    var element = createElement.apply(this, arguments);
+
+    // 如果使用模拟函数或自定义函数，则结果可能为空。
+    // TODO:当不再允许将其作为类型参数时，删除此项。
+    if (element == null) {
+      return element;
+    }
+
+    // 如果类型自密钥验证逻辑以来无效，则跳过密钥警告不需要非字符串/函数类型，可能会引发令人困惑的错误。
+    //  我们不希望异常行为在dev和prod之间有所不同（呈现将抛出一条有用的消息，并且一旦类型为已修复，将显示按键警告。）
+    if (validType) {
+      for (var i = 2; i < arguments.length; i++) {
+        validateChildKeys(arguments[i], type);
+      }
+    }
+
+    if (type === REACT_FRAGMENT_TYPE) {
+      validateFragmentProps(element);
+    } else {
+      validatePropTypes(element);
+    }
+    return element;
+  }
+
+  function createFactoryWithValidation(type) {
+    var validateFactory = createElementWithValidation.bind(null, type);
+    validateFactory.type = type;
+    // 旧钩子：移除它
+    {
+      Object.defineProperty(validateFactory, 'type', {
+        enumerable: false,
+        get: function() {
+          lowPriorityWarning$1(
+            false,
+            'Factory.type is deprecated. Access the class directly ' +
+              'before passing it to createFactory.'
+          );
+          Object.defineProperty(this, 'type', {
+            value: type
+          });
+          return type;
+        }
+      });
+    }
+    return validatedFactory;
+  }
+
+  function cloneElementWithValidation(element, props, children) {
+    var newElement = cloneElement.apply(this, arguments);
+    for (var i = 2; i < arguments.length; i++) {
+      validateChildKeys(arguments[i], newElement.type);
+    }
+    validatePropTypes(newElement);
+    return newElement;
+  }
+
+  var React = {
+    Children: {
+      map: mapChildren,
+      forEach: forEachchildren,
+      count: countChildren,
+      toArray: toArray,
+      only: onlyChild
+    },
+    createRef: createRef,
+    Component: Component,
+    PureComponent: PureComponent,
+
+    createContext: createContext,
+    forwardRef: forwardRef,
+    lazy: lazy,
+    memo: memo,
+
+    useCallback: useCallback,
+    useContext: useContext,
+    useEffect: useEffect,
+    useImperativeHandle: useImperativeHandle,
+    useDebugValue: useDebugValue,
+    useLayoutEffect: useLayoutEffect,
+    useMemo: useMemo,
+    useReducer: useReducer,
+    useRef: useRef,
+    useState: useState,
+
+    Fragment: REACT_FRAGMENT_TYPE,
+    StrictMode: REACT_STRICT_MODE_TYPE,
+    Suspense: REACT_SUSPENSE_TYPE,
+
+    createElement: createElementWithValidation,
+    cloneElement: cloneElementWithValidation,
+    createFactory: createFactoryWithValidation,
+    isValidElement: isValidElement,
+
+    version: ReactVersion,
+
+    unstable_ConcurrentMode: REACT_CONCURRENT_MODE_TYPE,
+    unstable_Profiler: REACT_PROFILER_TYPE,
+
+    __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED: ReactSharedInternals
+  };
+
+  // 注意：有些API添加了功能标志。
+  // 确保稳定的开源版本不要修改react对象以避免Deopts。
+  // 另外，我们不要在稳定的构建中公开它们的名称。
+  if (enableStableConcurrentModeAPIs) {
+    React.ConcurrentMode = REACT_CONCURRENT_MODE_TYPE;
+    React.Profiler = REACT_PROFILER_TYPE;
+    React.unstable_ConcurrentMode = undefined;
+    React.unstable_Profiler = undefined;
+  }
+
+  var React$2 = Object.freeze({
+    default: React
+  });
+
+  var React$3 = (React$2 && React) || React$2;
+
+  // TODO: 决定顶级导出表单。这很糟糕，但可以让它与Rollup和Jest一起使用。
+  var react = React$3.default || React$3;
+
+  return react;
 });
