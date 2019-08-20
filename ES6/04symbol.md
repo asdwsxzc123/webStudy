@@ -126,3 +126,349 @@ console.log(Symbol.keyFor(s1)); // "foo"
 var s2 = Symbol("foo");
 console.log(Symbol.keyFor(s2)); // undefined
 ```
+
+## 分析
+
+如果我们要模拟实现一个 Symbol 的话,基本的思路就是构建一个 Symbol 函数,然后直接返回一个独一无二的值.
+
+[规范](http://www.ecma-international.org/ecma-262/6.0/#sec-symbol-description)中调用 Symbol 做的工作:
+
+> symbol ( [ description ] )
+
+> When Symbol is called with optional argument description, the following steps are taken:
+
+1. If NewTarget is not undefined, throw a TypeError exception.
+1. If description is undefined, var descString be undefined.
+1. Else, var descString be ToString(description).
+1. ReturnIfAbrupt(descString).
+1. Return a new unique Symbol value whose [[Description]] value is descString.
+
+当调用 Symbol 的时候，会采用以下步骤：
+
+1. 如果使用 new ，就报错
+1. 如果 description 是 undefined，让 descString 为 undefined
+1. 否则 让 descString 为 ToString(description)
+1. 如果报错，就返回
+1. 返回一个新的唯一的 Symbol 值，它的内部属性 [[Description]] 值为 descString
+
+考虑到还需要定义一个 [[Description]] 属性，如果直接返回一个基本类型的值，是无法做到这一点的，所以我们最终还是返回一个对象。
+
+## 第一版
+
+```js
+(function() {
+  var root = this;
+  var SymbolPolyfill = function Symbol(description) {
+    // 实现第二点特性: Symbol函数前不能使用new命令
+    if (this instanceof SymbolPolyfill) {
+      throw new TypeError("Symbol is not a constrcutor");
+    }
+
+    // 实现第5点:如果Symbol的参数是一个对象,就会调用改对象的toString方法,将其转为字符串
+    var descString = description === undfined ? undefined : String(description);
+
+    var symbol = Object.create(null);
+
+    Object.defineProperties(symbol, {
+      __Description__: {
+        value: secString,
+        writable: false,
+        enumberable: false,
+        configurable: false
+      }
+    });
+
+    // 实现特性第 6 点，因为调用该方法，返回的是一个新对象，两个对象之间，只要引用不同，就不会相同
+    return symbol;
+  };
+  root.SymbolPolyfill = SymbolPolyfill;
+})();
+```
+
+## 第二版
+
+我们来看看其他的特性该如何实现
+
+1.使用 typeof, 结果为'symbol'
+这个无法实现
+
+3.instanceof 的结果为 false
+因为不能通过 new 的方式实现,所以 instanceof 的结果为 false
+
+4.symbol 函数可以接受一个字符串作为参数,表示对 Symbolshilling 的描述,主要是为了控制台显示,或者转为字符串时,比较容易区分
+当我们打印一个原生 Symbol 值的时候:
+
+```js
+console.log(Symbol("1")); // Symbol(1)
+```
+
+可是我们模拟实现的时候返回的却是一个对象,所以这个也是无法实现的,当然你修改 console.log 这个方法另将;
+
+8.Symbol 值可以显示转为字符串
+
+```js
+var sym = Symbol("My symbol");
+console.log(String(sym)); // 'Symbol(My symbol)'
+concole.log(sym.toString()); // 'Symbol(My symbol)'
+```
+
+当调用 String 方法的时候，如果该对象有 toString 方法，就会调用该 toString 方法，所以我们只要给返回的对象添加一个 toString 方法，即可实现这两个效果。
+
+```js
+// 第二版
+
+// 前面面代码相同 ……
+
+var symbol = Object.create({
+  toString: function() {
+    return "Symbol(" + this.__Description__ + ")";
+  }
+});
+
+// 后面代码相同 ……
+```
+
+## 第三版
+
+9.Symbol 值可以作为标识符,用于对象的属性名,可以保证不会出现同名的属性.
+
+这点其实和第 8 点是冲突的，这是因为当我们模拟的所谓 Symbol 值其实是一个有着 toString 方法的 对象，当对象作为对象的属性名的时候，就会进行隐式类型转换，还是会调用我们添加的 toString 方法，对于 Symbol('foo') 和 Symbol('foo')两个 Symbol 值，虽然描述一样，但是因为是两个对象，所以并不相等，但是当作为对象的属性名的时候，都会隐式转换为 Symbol(foo) 字符串，这个时候就会造成同名的属性。举个例子：
+
+```js
+var a = SymbolPolyfill("foo");
+var b = SymbolPolyfill("foo");
+
+console.log(a === b); // false
+
+var o = {};
+o[a] = "hello";
+o[b] = "hi";
+
+console.log(o); // Symbol(foo): 'hi'
+```
+
+为了防止不会出现同名的属性，毕竟这是一个非常重要的特性，迫不得已，我们需要修改 toString 方法，让它返回一个唯一值，所以第 8 点就无法实现了，而且我们还需要再写一个用来生成 唯一值的方法，就命名为 generateName，我们将该唯一值添加到返回对象的`__Name__`属性中保存下来。
+
+```js
+// 第三版
+(function() {
+  var root = this;
+  var generateName = (function() {
+    var postfix = 0;
+    return function(descString) {
+      postfix++;
+      return "@@" + descString + "_" + postfix;
+    };
+  })();
+  var SymbolPolyfill = function Symbol(description) {
+    if (this instanceof SymbolPolyfill)
+      throw new TypeError("Symbol is not a constructor");
+
+    var descString =
+      description === undefined ? undefined : String(description);
+
+    var symbol = Object.create({
+      toString: function() {
+        return this.__Name__;
+      }
+    });
+
+    Object.defineProperties(symbol, {
+      __Description__: {
+        value: descString,
+        writable: false,
+        enumerable: false,
+        configurable: false
+      },
+      __Name__: {
+        value: generateName(descString),
+        writable: false,
+        enumerable: false,
+        configurable: false
+      }
+    });
+    return symbol;
+  };
+  root.SymbolPolyfill = SymbolPolyfill;
+})();
+```
+
+此时在看下面这个例子:
+
+```js
+var a = SymbolPolyfill("foo");
+var b = SymbolPolyfill("foo");
+
+console.log(a === b); // false
+
+var o = {};
+o[a] = "hello";
+o[b] = "hi";
+
+console.log(o); // Object { "@@foo_1": "hello", "@@foo_2": "hi" }
+```
+
+## 第四版
+
+7. Symbol 值不能与其他类型的值进行计算,会报错  
+   以`+`为例,当进行隐式类型转换的时候,会先调用对象的 valueOf 方法,如果没有返回基本值,就会再调用 toString 方法,所以我们考虑在 valueOf 方法中进行报错,比如:
+
+```js
+var symbol = Object.create({
+  valueOf: function() {
+    throw new Error("Cannot convert a Symbol value");
+  }
+});
+console.log("1" + symbol); // 报错
+```
+
+看着很简单的解决了这个问题,可是如果我们是显示调用 valueOf 方法呢,对于一个原生的 Symbol 值:
+
+```js
+var s1 = Symbol("foo");
+console.log(s1.valueOf()); // Symbol(foo)
+```
+
+对于原生 Symbol,显示调用 valueOf 方法,会直接返回改 Symbol 值,二我们又无法判断显式还是隐式的调用,所以这个我们就只能实现一半,要不然实现隐式调用报错,要不然实现显示调用返回值,
+
+```js
+// 第四版
+// 前面代码相同...
+var symbol = Object.create({
+  toString: function() {
+    return this.__Name__;
+  },
+  valueOf: function() {
+    return this;
+  }
+});
+// 后面代码相同...
+```
+
+## 第五版
+
+10.Symbol 作为属性名,该属性不会出现在 for...in,for...of 循环中,也不会被 Object.keys(),Object.getOwnPropertyNames(),JSON.stringify()返回.但是,它也不是私有属性,有一个 Object.getOwnPropertySymbols 方法,可以获取指定对象的所又 Symbol 属性名;  
+无法实现
+
+11.有时，我们希望重新使用同一个 Symbol 值，Symbol.for 方法可以做到这一点。它接受一个字符串作为参数，然后搜索有没有以该参数作为名称的 Symbol 值。如果有，就返回这个 Symbol 值，否则就新建并返回一个以该字符串为名称的 Symbol 值。  
+这个实现类似于函数记忆，我们建立一个对象，用来储存已经创建的 Symbol 值即可。
+
+12.Symbol.keyFor 方法返回一个已登记的 Symbol 类型值的 key。
+
+遍历 forMap,查找该值对应的键值即可。
+
+```js
+// 第五版
+// 前面代码相同...
+var SymbolPolyfill =function (){...}
+var forMap= {}
+Object.defineProperties(SymbolPolyfill, {
+  'for': {
+    value: function (description) {
+      var descString = description === undefined ? undefined : String(description)
+      return forMap[descString] ? forMap(descString) : forMap[descString] = SymbolPolyfill(descString)
+    },
+      writable: true,
+        enumerable: false,
+        configurable: true
+  },
+  'keyFor': {
+    value: function (symbol) {
+      for (var key in forMap) {
+        if (forMap[key] === symbol) return key
+      }
+    },
+    writable: true,
+        enumerable: false,
+        configurable: true
+  }
+})
+// 后面代码相同...
+```
+
+## 完整实现
+
+综上所述：
+
+无法实现的特性有：1、4、7、8、10
+
+可以实现的特性有：2、3、5、6、9、11、12
+
+最后的实现如下:
+
+```js
+(function() {
+  var root = this;
+
+  var generateName = (function() {
+    var postfix = 0;
+    return function(descString) {
+      postfix++;
+      return "@@" + descString + "_" + postfix;
+    };
+  })();
+
+  var SymbolPolyfill = function Symbol(description) {
+    if (this instanceof SymbolPolyfill)
+      throw new TypeError("Symbol is not a constructor");
+
+    var descString =
+      description === undefined ? undefined : String(description);
+
+    var symbol = Object.create({
+      toString: function() {
+        return this.__Name__;
+      },
+      valueOf: function() {
+        return this;
+      }
+    });
+
+    Object.defineProperties(symbol, {
+      __Description__: {
+        value: descString,
+        writable: false,
+        enumerable: false,
+        configurable: false
+      },
+      __Name__: {
+        value: generateName(descString),
+        writable: false,
+        enumerable: false,
+        configurable: false
+      }
+    });
+
+    return symbol;
+  };
+
+  var forMap = {};
+
+  Object.defineProperties(SymbolPolyfill, {
+    for: {
+      value: function(description) {
+        var descString =
+          description === undefined ? undefined : String(description);
+        return forMap[descString]
+          ? forMap[descString]
+          : (forMap[descString] = SymbolPolyfill(descString));
+      },
+      writable: true,
+      enumerable: false,
+      configurable: true
+    },
+    keyFor: {
+      value: function(symbol) {
+        for (var key in forMap) {
+          if (forMap[key] === symbol) return key;
+        }
+      },
+      writable: true,
+      enumerable: false,
+      configurable: true
+    }
+  });
+
+  root.SymbolPolyfill = SymbolPolyfill;
+})();
+```
