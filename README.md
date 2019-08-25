@@ -63,6 +63,9 @@
    - 10 async
    - 11 defineProperty 和 proxy
    - 12 模块化
+   - 13 装饰器
+   - 14 私有变量
+   - 15 ES6 使用
 5. react
 
 - 抄录了一遍 V16.8 源码
