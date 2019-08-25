@@ -59,6 +59,10 @@
    - 06 Set
    - 07 weakMap
    - 08 promise
+   - 09 generator
+   - 10 async
+   - 11 defineProperty 和 proxy
+   - 12 模块化
 5. react
 
 - 抄录了一遍 V16.8 源码
