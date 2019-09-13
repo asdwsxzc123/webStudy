@@ -2,6 +2,15 @@
 
 Affix 是固钉的作用,将需要固定 div 固定在浏览器顶部
 
+## API
+
+| 成员         | 说明                                                                 | 类型                           | 默认值 | 版本 |
+| ------------ | -------------------------------------------------------------------- | ------------------------------ | ------ | ---- |
+| offsetBottom | 距离窗口底部达到指定偏移量后触发                                     | number                         |
+| offsetTop    | 距离窗口顶部达到指定偏移量后触发                                     | number                         |
+| target       | 设置 Affix 需要监听其滚动事件的元素，值为一个返回对应 DOM 元素的函数 | () => HTMLElement () => window |
+| onChange     | 固定状态改变时触发的回调函数                                         | Function(affixed)              | 无     |
+
 ## 引入的文件
 
 ```js
@@ -154,7 +163,7 @@ import {
 
 用 ts 写的模块在发布的时候仍然是用 js 发布，这就导致一个问题：ts 那么多类型数据都没了，所以需要一个 d.ts 文件来标记某个 js 库里面对象的类型
 
-## Affix 组件 AffixProps 接口定义
+## Affix 组件 props AffixProps 接口定义
 
 ```ts
 export interface AffixProps {
@@ -341,5 +350,342 @@ class Affix extends React.Component<AffixProps, AffixState> {
         });
       });
     }
+  }
+```
+
+## componentDidUpdate
+
+```js
+componentDidUpdate(prevProps: AffixProps) {
+    const { prevTarget } = this.state;
+    const { target } = this.props;
+    let newTarget = null;
+    if (target) {
+      newTarget = target() || null;
+    }
+
+    // 如果位置不相等,就删除当前节点,重新添加到观察者队列中
+    if (prevTarget !== newTarget) {
+      removeObserveTarget(this);
+      if (newTarget) {
+        addObserveTarget(newTarget, this);
+        // Mock Event object.
+        this.updatePosition();
+      }
+
+      this.setState({ prevTarget: newTarget });
+    }
+    // 如果位置不相等,更新位置
+    if (
+      prevProps.offsetTop !== this.props.offsetTop ||
+      prevProps.offsetBottom !== this.props.offsetBottom
+    ) {
+      this.updatePosition();
+    }
+    // 测量位置
+    this.measure();
+  }
+```
+
+## componentWillUnmount
+
+```js
+componentWillUnmount() {
+  // 删除定时器
+  clearTimeout(this.timeout);
+  // 清除当前节点的观察者
+  removeObserveTarget(this);
+  // any类型的作用是不需要明确定义值的结构和类型, 也就是声明为任意类型
+  (this.updatePosition as any).cancel();
+}
+```
+
+## render
+
+```js
+// 这里getPrefixCls来源于ConfigConPorvider广播过来的数据,属于消费者
+renderAffix = ({ getPrefixCls }: ConfigConsumerProps) => {
+    const { affixStyle, placeholderStyle } = this.state;
+    const { prefixCls, children } = this.props;
+    const className = classNames({
+      [getPrefixCls('affix', prefixCls)]: affixStyle,
+    });
+
+    // 将'prefixCls', 'offsetTop', 'offsetBottom', 'target', 'onChange'从props去除出来,可以用es6的拓展运算符也可以,只是es6需要声明更多的变量,不方便
+    let props = omit(this.props, ['prefixCls', 'offsetTop', 'offsetBottom', 'target', 'onChange']);
+    // Omit this since `onTestUpdatePosition` only works on test.
+    if (process.env.NODE_ENV === 'test') {
+      props = omit(props, ['onTestUpdatePosition']);
+    }
+
+    return (
+      // 第三方库用来监听元素的变化
+      <ResizeObserver
+        onResize={() => {
+          this.updatePosition();
+        }}
+      >
+        <div {...props} ref={this.savePlaceholderNode}>
+          // 占位节点
+          {affixStyle && <div style={placeholderStyle} aria-hidden="true" />}
+          // 固定定位节点
+          <div className={className} ref={this.saveFixedNode} style={affixStyle}>
+            <ResizeObserver
+              onResize={() => {
+                this.updatePosition();
+              }}
+            >
+              {children}
+            </ResizeObserver>
+          </div>
+        </div>
+      </ResizeObserver>
+    );
+  };
+
+render() {
+    // ConfigConsumer这里是消费者,使用的是Context.Provider和Context.Consumer,为了共享那些对于一个组件树而言是“全局”的数据,Context 能让你将这些数据向组件树下所有的组件进行“广播”
+    return <ConfigConsumer>{this.renderAffix}</ConfigConsumer>;
+  }
+```
+
+## 一些组件函数
+
+上面已经简单吧 affix 的组件结构,生命周期都讲完了.下面将一些调用的函数
+
+### getOffsetTop
+
+该函数用来获取距离顶部的偏移量,offset 和 offsetBottom,offsetTop 来源于外层传入的组件
+
+如果 offsetTop 不存在,使用默认的 offset 作为值
+
+如果 offsetBottom 和 offsetTop 都不存在,则 offsetTop 为 0
+
+```js
+getOffsetTop = () => {
+  const { offset, offsetBottom } = this.props;
+  let { offsetTop } = this.props;
+  if (typeof offsetTop === "undefined") {
+    offsetTop = offset;
+    warning(
+      typeof offset === "undefined",
+      "Affix",
+      "`offset` is deprecated. Please use `offsetTop` instead."
+    );
+  }
+
+  if (offsetBottom === undefined && offsetTop === undefined) {
+    offsetTop = 0;
+  }
+  return offsetTop;
+};
+```
+
+### getOffsetBottom
+
+从外层获取 offsetBottom
+
+```js
+getOffsetBottom = () => {
+  return this.props.offsetBottom;
+};
+```
+
+### savePlaceholderNode
+
+保存占位节点的数据
+
+```js
+savePlaceholderNode = (node: HTMLDivElement) => {
+  this.placeholderNode = node;
+};
+```
+
+### saveFixedNode
+
+保存固定定位节点的信息
+
+```js
+saveFixedNode = (node: HTMLDivElement) => {
+  this.fixedNode = node;
+};
+```
+
+### measure
+
+该函数是用来测量
+
+```js
+measure = () => {
+  // 状态none 0/prepare 1,最近的affix:boolean
+    const { status, lastAffix } = this.state;
+    // target:设置 Affix 需要监听其滚动事件的元素，值为一个返回对应 DOM 元素的函数,改变的回调事件
+    const { target, onChange } = this.props;
+    // 如果状态不等于prepare或者固定元素不存在,或者占位元素不存在,或者target函数不存在,只要有一个条件满足,就不再执行
+    // 因此这里应该是针对已经affix的元素
+    if (status !== AffixStatus.Prepare || !this.fixedNode || !this.placeholderNode || !target) {
+      return;
+    }
+
+    const offsetTop = this.getOffsetTop();
+    const offsetBottom = this.getOffsetBottom();
+
+  // 获取滚动容器节点,不存在直接返回
+    const targetNode = target();
+    if (!targetNode) {
+      return;
+    }
+    // 声明一个新的状态,默认为0
+    const newState: Partial<AffixState> = {
+      status: AffixStatus.None,
+    };
+    // 将容器元素和占位元素转化成DOMRect元素
+    const targetRect = getTargetRect(targetNode);
+    const placeholderReact = getTargetRect(this.placeholderNode);
+    // 获取固定位置的偏移量
+    const fixedTop = getFixedTop(placeholderReact, targetRect, offsetTop);
+    const fixedBottom = getFixedBottom(placeholderReact, targetRect, offsetBottom);
+
+    // fixedTop高度不为undefined,设置affix的和placeholder的样式
+    if (fixedTop !== undefined) {
+      newState.affixStyle = {
+        position: 'fixed',
+        top: fixedTop,
+        width: placeholderReact.width,
+        height: placeholderReact.height,
+      };
+      newState.placeholderStyle = {
+        width: placeholderReact.width,
+        height: placeholderReact.height,
+      };
+    } else if (fixedBottom !== undefined) {
+      newState.affixStyle = {
+        position: 'fixed',
+        bottom: fixedBottom,
+        width: placeholderReact.width,
+        height: placeholderReact.height,
+      };
+      newState.placeholderStyle = { width: placeholderReact.width,
+        height: placeholderReact.height,
+      };
+    }
+
+    newState.lastAffix = !!newState.affixStyle;
+    if (onChange && lastAffix !== newState.lastAffix) {
+      onChange(newState.lastAffix);
+    }
+    // 直接将整个state都重新渲染
+    this.setState(newState as AffixState);
+  };
+
+```
+
+- getTargetRect()
+
+该函数将 targetNode 元素,转化为 DOMRect 元素,可以得到元素的位置大小信息
+
+```js
+export function getTargetRect(target: BindElement): ClientRect {
+  return target !== window
+    ? (target as HTMLElement).getBoundingClientRect()
+    : ({ top: 0, bottom: window.innerHeight } as ClientRect);
+}
+```
+
+```js
+{
+  bottom: -1258.4375;
+  height: 32;
+  left: 376.25;
+  right: 632.125;
+  top: -1290.4375;
+  width: 255.875;
+  x: 376.25;
+  y: -1290.4375;
+}
+```
+
+- getFixedTop(), getFixedBottom()
+  获取固定定位的 top 位置
+
+```js
+export function getFixedTop(
+  placeholderReact: Rect, // 占位元素的信息
+  targetRect: Rect, // 容器的信息
+  offsetTop: number | undefined // 需要偏移的信息
+) {
+  // 如果偏移高度不等于undefined并且容器的top大于(占位元素的高度-偏移的高度) 当前fixedTop = offsetTop + targetRect.top;
+  if (
+    offsetTop !== undefined &&
+    targetRect.top > placeholderReact.top - offsetTop
+  ) {
+    return offsetTop + targetRect.top;
+  }
+  return undefined;
+}
+```
+
+### prepareMeasure, updatePosition 和 lazyUpdatePosition
+
+prepareMeasure 该函数用来重置 state 数据,同时让 status 为 1
+
+updatePosition 用来更新位置信息,调用 prepareMeasure
+
+```js
+prepareMeasure = () => {
+    // 以前使用过事件参数。保持兼容TS在此定义
+    // event param is used before. Keep compatible ts define here.
+    this.setState({
+      status: AffixStatus.Prepare,
+      affixStyle: undefined,
+      placeholderStyle: undefined,
+    });
+
+    // Test if `updatePosition` called
+    if (process.env.NODE_ENV === 'test') {
+      const { onTestUpdatePosition } = this.props as any;
+      if (onTestUpdatePosition) {
+        onTestUpdatePosition();
+      }
+    }
+  };
+
+  // 处理重新调整逻辑
+  // Handle realign logic
+  @throttleByAnimationFrameDecorator()
+  updatePosition() {
+    this.prepareMeasure();
+  }
+
+  // 懒更新位置,在整个组件中没有被调用
+  @throttleByAnimationFrameDecorator()
+  lazyUpdatePosition() {
+    const { target } = this.props;
+    const { affixStyle } = this.state;
+    // 测量前检查位置变化，使safari流畅进行
+    // Check position change before measure to make Safari smooth
+    if (target && affixStyle) {
+      const offsetTop = this.getOffsetTop();
+      const offsetBottom = this.getOffsetBottom();
+
+      const targetNode = target();
+      if (targetNode) {
+        const targetRect = getTargetRect(targetNode);
+        const placeholderReact = getTargetRect(this.placeholderNode);
+        const fixedTop = getFixedTop(placeholderReact, targetRect, offsetTop);
+        const fixedBottom = getFixedBottom(placeholderReact, targetRect, offsetBottom);
+
+        if (
+          (fixedTop !== undefined && affixStyle.top === fixedTop) ||
+          (fixedBottom !== undefined && affixStyle.bottom === fixedBottom)
+        ) {
+          return;
+        }
+      }
+    }
+
+    // 直接调用prepare measure，因为它已经被节流了。
+    // Directly call prepare measure since it's already throttled.
+    this.prepareMeasure();
   }
 ```
