@@ -141,7 +141,7 @@ export default class Anchor extends React.Component<AnchorProps, AnchorState> {
     showInkInFixed: false,
     getContainer: getDefaultContainer,
   };
-  // 子组件上下文类型
+  // 子组件上下文类型,用于说明所传递的数据类型
   static childContextTypes = {
     antAnchor: PropTypes.object,
   };
@@ -163,7 +163,7 @@ export default class Anchor extends React.Component<AnchorProps, AnchorState> {
   private animating: boolean;
 
   private prefixCls?: string;
-  // 获取子组件上下文
+  // 获取子组件上下文,可以让子组件通过context拿到父组件内容
   getChildContext() {
   }
 
@@ -188,7 +188,7 @@ export default class Anchor extends React.Component<AnchorProps, AnchorState> {
   handleScroll = () => {
   };
 
-  // 根系ink
+  // 更新ink
   updateInk = () => {
   };
   // 渲染Anchor
@@ -606,4 +606,140 @@ import { polyfill } from "react-lifecycles-compat";
 import classNames from "classnames";
 import { AntAnchor } from "./Anchor";
 import { ConfigConsumer, ConfigConsumerProps } from "../config-provider";
+```
+
+- AntAnchor
+  这个是使用 ts 声明的接口
+
+## 接口定义
+
+```js
+export interface AnchorLinkProps {
+  prefixCls?: string; // 类名
+  href: string;
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
+}
+```
+
+## 整体结构
+
+```js
+class AnchorLink extends React.Component<AnchorLinkProps, any> {
+  // 默认props
+  static defaultProps = {
+    href: "#"
+  };
+  // contextTypes 父组件的类型定义,是对象类型,还是用proptypes
+  static contextTypes = {
+    antAnchor: PropTypes.object
+  };
+  // context: antAncor定义,可以通过this.context.antAnchor拿到anchor的数据
+  context: {
+    antAnchor: AntAnchor
+  };
+
+  componentDidMount() {}
+
+  componentDidUpdate({ href: prevHref }: AnchorLinkProps) {}
+
+  componentWillUnmount() {}
+
+  handleClick = (e: React.MouseEvent<HTMLElement>) => {};
+
+  renderAnchorLink = ({ getPrefixCls }: ConfigConsumerProps) => {};
+
+  render() {}
+}
+```
+
+## 生命周期
+
+### componentDidMount
+
+```js
+  // 加载完成支线,antAnchor的注册事件,吧href传递进去
+  componentDidMount() {
+    this.context.antAnchor.registerLink(this.props.href);
+  }
+```
+
+### componentDidUpdate
+
+```js
+  // 完成更新
+  componentDidUpdate({ href: prevHref }: AnchorLinkProps) {
+    const { href } = this.props;
+    // 如果两个href不相等,先删除注册的href,然后注册新的
+    if (prevHref !== href) {
+      this.context.antAnchor.unregisterLink(prevHref);
+      this.context.antAnchor.registerLink(href);
+    }
+  }
+```
+
+### componentWillUnmount
+
+```js
+  // 删除注册的href
+  componentWillUnmount() {
+    this.context.antAnchor.unregisterLink(this.props.href);
+  }
+```
+
+### render
+
+```js
+  // 从消费者中获取getPrefixCls,HOC
+  renderAnchorLink = ({ getPrefixCls }: ConfigConsumerProps) => {
+    // 自定义类名前缀,href,标题,组件中的slot,类名
+    const { prefixCls: customizePrefixCls, href, title, children, className } = this.props;
+    // 将类名改为ant-anchor
+    const prefixCls = getPrefixCls('anchor', customizePrefixCls);
+    // 获取antAnchor的activeLink是否定义href,得到当前是否为活跃的
+    const active = this.context.antAnchor.activeLink === href;
+    // 获取wrapper的类名,合并
+    const wrapperClassName = classNames(className, `${prefixCls}-link`, {
+      [`${prefixCls}-link-active`]: active,
+    });
+    // 后去title的类名
+    const titleClassName = classNames(`${prefixCls}-link-title`, {
+      [`${prefixCls}-link-title-active`]: active,
+    });
+    return (
+      <div className={wrapperClassName}>
+        <a
+          className={titleClassName}
+          href={href}
+          // 先判断是否为字符串,在显示..
+          title={typeof title === 'string' ? title : ''}
+          onClick={this.handleClick}
+        >
+          {title}
+        </a>
+        {children}
+      </div>
+    );
+  };
+
+  render() {
+    return <ConfigConsumer>{this.renderAnchorLink}</ConfigConsumer>;
+  }
+```
+
+## handleClick
+
+```js
+handleClick = (e: React.MouseEvent<HTMLElement>) => {
+  // 获取父组件的scrollTo,onClick行首
+  const { scrollTo, onClick } = this.context.antAnchor;
+  const { href, title } = this.props;
+  if (onClick) {
+    // 触发父组件点击事件
+    onClick(e, { title, href });
+  }
+  // 触发父组件滚动事件
+  scrollTo(href);
+};
 ```
