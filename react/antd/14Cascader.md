@@ -352,10 +352,11 @@ class Cascader extends React.Component<CascaderProps, CascaderState> {
     if ('value' in nextProps) {
       newState.value = nextProps.value || [];
     }
-    // 设置值,从外层props传入
+    // 设置值,从外层props传入,如果是true显示下拉
     if ('popupVisible' in nextProps) {
       newState.popupVisible = nextProps.popupVisible;
     }
+    // 显示showSearch,如果options不相等
     if (nextProps.showSearch && prevProps.options !== nextProps.options) {
       // 扁平化tree,获取每一级,所有的item
       newState.flattenOptions = flattenTree(nextProps.options, nextProps);
@@ -420,7 +421,7 @@ class Cascader extends React.Component<CascaderProps, CascaderState> {
       [`${prefixCls}-picker-show-search`]: !!showSearch,
       [`${prefixCls}-picker-focused`]: inputFocused,
     });
-    // 这样使用会有问题,如果有新增加的配置,需要每次在这里添加一次
+    // 这样使用会有问题,如果有新增加的配置,需要每次在这里添加一次,过滤不需要的props
     // Fix bug of https://github.com/facebook/react/pull/5004
     // and https://fb.me/react-unknown-prop
     const inputProps = omit(otherProps, [
@@ -527,6 +528,7 @@ class Cascader extends React.Component<CascaderProps, CascaderState> {
     const rest = omit(props, ['inputIcon', 'expandIcon', 'loadingIcon']);
 
     return (
+      // 基于RcCascader,在这里只是做了数据处理,底层在RcCascader里面写的
       <RcCascader
         {...rest}
         prefixCls={prefixCls}
@@ -606,13 +608,16 @@ function warningValueNotExist(list: CascaderOptionType[], fieldNames: FieldNames
 
     // Limit the filter if needed
     let filtered: Array<CascaderOptionType[]>;
+    // 做limit条数限制筛选
     if (limit > 0) {
       filtered = [];
       let matchCount = 0;
 
-      // Perf optimization to filter items only below the limit
+      // Perf optimization to filter items only below the limit,
+      // some对遍历做了优化,只要满足条件不在遍历
       flattenOptions.some(path => {
         const match = filter(this.state.inputValue, path, names);
+        // 输入的值和path匹配,传入到filtered数组中
         if (match) {
           filtered.push(path);
           matchCount += 1;
@@ -625,11 +630,12 @@ function warningValueNotExist(list: CascaderOptionType[], fieldNames: FieldNames
         'Cascader',
         "'limit' of showSearch should be positive number or false.",
       );
+      // 不存在limit就全部返回
       filtered = flattenOptions.filter(path => filter(this.state.inputValue, path, names));
     }
-
+  // 排序操作
     filtered.sort((a, b) => sort(a, b, inputValue, names));
-
+    // 将数据重新处理
     if (filtered.length > 0) {
       return filtered.map((path: CascaderOptionType[]) => {
         return {
@@ -649,7 +655,7 @@ function warningValueNotExist(list: CascaderOptionType[], fieldNames: FieldNames
       },
     ];
   }
-  // 默认
+  // 默认筛选,如果存在返回true
   function defaultFilterOption(
     inputValue: string,
     path: CascaderOptionType[],
