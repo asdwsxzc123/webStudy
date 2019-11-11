@@ -528,7 +528,7 @@ class Cascader extends React.Component<CascaderProps, CascaderState> {
     const rest = omit(props, ['inputIcon', 'expandIcon', 'loadingIcon']);
 
     return (
-      // 基于RcCascader,在这里只是做了数据处理,底层在RcCascader里面写的
+      // 基于RcCascader,在这里只是做了数据处理,底层在RcCascader里面写的,下个专题去了解Rc系列组件
       <RcCascader
         {...rest}
         prefixCls={prefixCls}
