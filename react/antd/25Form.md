@@ -108,10 +108,10 @@ const {
 validateFields((errors, values) => {
   // ...
 });
-validateFields(["field1", "field2"], (errors, values) => {
+validateFields(['field1', 'field2'], (errors, values) => {
   // ...
 });
-validateFields(["field1", "field2"], options, (errors, values) => {
+validateFields(['field1', 'field2'], options, (errors, values) => {
   // ...
 });
 ```
@@ -228,8 +228,8 @@ validateFields(["field1", "field2"], options, (errors, values) => {
 ## 在 TypeScript 中使用
 
 ```tsx
-import { Form } from "antd";
-import { FormComponentProps } from "antd/es/form";
+import { Form } from 'antd';
+import { FormComponentProps } from 'antd/es/form';
 
 interface UserFormProps extends FormComponentProps {
   age: number;
@@ -280,20 +280,20 @@ validator(rule, value, callback) => {
 ## 引入文件
 
 ```js
-import * as React from "react";
-import * as PropTypes from "prop-types";
-import classNames from "classnames";
-import createDOMForm from "rc-form/lib/createDOMForm"; // 创建form
-import createFormField from "rc-form/lib/createFormField"; // 创建formfield
-import omit from "omit.js";
-import { ConfigConsumer, ConfigConsumerProps } from "../config-provider";
-import { ColProps } from "../grid/col"; // colProps
-import { tuple } from "../_util/type";
-import warning from "../_util/warning";
-import FormItem, { FormLabelAlign } from "./FormItem"; // formItem
-import { FIELD_META_PROP, FIELD_DATA_PROP } from "./constants";
-import FormContext from "./context"; // context
-import { FormWrappedProps } from "./interface";
+import * as React from 'react';
+import * as PropTypes from 'prop-types';
+import classNames from 'classnames';
+import createDOMForm from 'rc-form/lib/createDOMForm'; // 创建form
+import createFormField from 'rc-form/lib/createFormField'; // 创建formfield
+import omit from 'omit.js';
+import { ConfigConsumer, ConfigConsumerProps } from '../config-provider';
+import { ColProps } from '../grid/col'; // colProps
+import { tuple } from '../_util/type';
+import warning from '../_util/warning';
+import FormItem, { FormLabelAlign } from './FormItem'; // formItem
+import { FIELD_META_PROP, FIELD_DATA_PROP } from './constants';
+import FormContext from './context'; // context
+import { FormWrappedProps } from './interface';
 ```
 
 ## 接口
@@ -815,10 +815,12 @@ export default class FormItem extends React.Component<FormItemProps, any> {
     if (!id) {
       return;
     }
-
+  // 获取dom节点的方式,不需要使用ref
     const formItemNode = ReactDOM.findDOMNode(this) as Element;
     const control = formItemNode.querySelector(`[id="${id}"]`) as HTMLElement;
+    // focus
     if (control && control.focus) {
+      // 可以通过focus打开
       control.focus();
     }
   };
@@ -829,12 +831,14 @@ export default class FormItem extends React.Component<FormItemProps, any> {
       this.setState({});
     }
   };
-
+  // 是否为必填项
   isRequired() {
     const { required } = this.props;
+    // 只要存在,就返回
     if (required !== undefined) {
       return required;
     }
+    // 获取控制器
     if (this.getOnlyControl()) {
       const meta = this.getMeta() || {};
       const validate = meta.validate || [];
@@ -973,6 +977,7 @@ export default class FormItem extends React.Component<FormItemProps, any> {
           labelCol: contextLabelCol,
           colon: contextColon,
         }: FormContextProps) => {
+          // 标题名,占用的长度,对齐方式,是否有冒号,id,设置子元素 label htmlFor 属性
           const { label, labelCol, labelAlign, colon, id, htmlFor } = this.props;
           const required = this.isRequired();
 
