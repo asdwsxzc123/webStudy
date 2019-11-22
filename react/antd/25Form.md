@@ -714,7 +714,7 @@ export default class FormItem extends React.Component<FormItemProps, any> {
       '`id` is deprecated for its label `htmlFor`. Please use `htmlFor` directly.',
     );
   }
-
+  // 获取help信息
   getHelpMessage() {
     const { help } = this.props;
     if (help === undefined && this.getOnlyControl()) {
@@ -723,7 +723,7 @@ export default class FormItem extends React.Component<FormItemProps, any> {
         return intersperseSpace(
           errors.map((e: any, index: number) => {
             let node: React.ReactElement<any> | null = null;
-
+            // 判断是react组件,还是字符串
             if (React.isValidElement(e)) {
               node = e;
             } else if (React.isValidElement(e.message)) {
@@ -794,6 +794,7 @@ export default class FormItem extends React.Component<FormItemProps, any> {
     if (!onlyControl) {
       return '';
     }
+    // 获取field数据
     const field = this.getField();
     if (field.validating) {
       return 'validating';
@@ -851,7 +852,7 @@ export default class FormItem extends React.Component<FormItemProps, any> {
     }
     return false;
   }
-
+// 渲染help
   renderHelp(prefixCls: string) {
     const help = this.getHelpMessage();
     const children = help ? (
@@ -889,6 +890,7 @@ export default class FormItem extends React.Component<FormItemProps, any> {
     const { props } = this;
     const onlyControl = this.getOnlyControl;
     const validateStatus =
+    // 校验状态,如果不存在,直接从control中找
       props.validateStatus === undefined && onlyControl
         ? this.getValidateStatus()
         : props.validateStatus;
