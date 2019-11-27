@@ -131,3 +131,392 @@ ReactDOM.render(<Icon component={MessageSvg} />, mountNode);
 | fill      | `svg` 元素填充的颜色    | string           | 'currentColor' | 3.10.0 |
 | className | 计算后的 `svg` 类名     | string           | -              | 3.10.0 |
 | style     | 计算后的 `svg` 元素样式 | CSSProperties    | -              | 3.10.0 |
+
+## IconFont
+
+```js
+import * as React from 'react';
+import Icon, { IconProps } from './index';
+
+const customCache = new Set<string>();
+
+export interface CustomIconOptions {
+  scriptUrl?: string;
+  extraCommonProps?: { [key: string]: any };
+}
+
+export default function create(options: CustomIconOptions = {}): React.SFC<IconProps> {
+  const { scriptUrl, extraCommonProps = {} } = options;
+  // 获取远端的库
+  /**
+   * DOM API required.
+   * Make sure in browser environment.
+   * The Custom Icon will create a <script/>
+   * that loads SVG symbols and insert the SVG Element into the document body.
+   */
+  if (
+    typeof document !== 'undefined' &&
+    typeof window !== 'undefined' &&
+    typeof document.createElement === 'function' &&
+    typeof scriptUrl === 'string' &&
+    scriptUrl.length &&
+    !customCache.has(scriptUrl)
+  ) {
+    const script = document.createElement('script');
+    script.setAttribute('src', scriptUrl);
+    script.setAttribute('data-namespace', scriptUrl);
+    customCache.add(scriptUrl);
+    document.body.appendChild(script);
+  }
+  //  SVG
+  const Iconfont: React.SFC<IconProps> = props => {
+    const { type, children, ...restProps } = props;
+
+    // component > children > type
+    let content = null;
+    if (props.type) {
+      content = <use xlinkHref={`#${type}`} />;
+    }
+    if (children) {
+      content = children;
+    }
+    return (
+      <Icon {...restProps} {...extraCommonProps}>
+        {content}
+      </Icon>
+    );
+  };
+
+  Iconfont.displayName = 'Iconfont';
+
+  return Iconfont;
+}
+
+```
+
+## 引入文件
+
+```js
+import * as React from 'react';
+import classNames from 'classnames';
+import * as allIcons from '@ant-design/icons/lib/dist'; // 内置icon库
+import ReactIcon from '@ant-design/icons-react'; // icon组件
+import createFromIconfontCN from './IconFont';
+import {
+  svgBaseProps,
+  withThemeSuffix,
+  removeTypeTheme,
+  getThemeFromTypeName,
+  alias
+} from './utils';
+import warning from '../_util/warning';
+import LocaleReceiver from '../locale-provider/LocaleReceiver';
+import { getTwoToneColor, setTwoToneColor } from './twoTonePrimaryColor';
+
+/* utils */
+// svg基础参数
+// These props make sure that the SVG behaviours like general text.
+// Reference: https://blog.prototypr.io/align-svg-icons-to-text-and-say-goodbye-to-font-icons-d44b3d7b26b4
+export const svgBaseProps = {
+  width: '1em',
+  height: '1em',
+  fill: 'currentColor',
+  'aria-hidden': true,
+  focusable: 'false'
+};
+
+const fillTester = /-fill$/;
+const outlineTester = /-o$/;
+const twoToneTester = /-twotone$/;
+// 获取类型
+export function getThemeFromTypeName(type: string): ThemeType | null {
+  let result: ThemeType | null = null;
+  if (fillTester.test(type)) {
+    result = 'filled';
+  } else if (outlineTester.test(type)) {
+    result = 'outlined';
+  } else if (twoToneTester.test(type)) {
+    result = 'twoTone';
+  }
+  return result;
+}
+// 删除
+export function removeTypeTheme(type: string) {
+  return type
+    .replace(fillTester, '')
+    .replace(outlineTester, '')
+    .replace(twoToneTester, '');
+}
+// 添加
+export function withThemeSuffix(type: string, theme: ThemeType) {
+  let result = type;
+  if (theme === 'filled') {
+    result += '-fill';
+  } else if (theme === 'outlined') {
+    result += '-o';
+  } else if (theme === 'twoTone') {
+    result += '-twotone';
+  } else {
+    warning(false, 'Icon', `This icon '${type}' has unknown theme '${theme}'`);
+  }
+  return result;
+}
+
+// For alias or compatibility
+export function alias(type: string) {
+  let newType = type;
+  switch (type) {
+    case 'cross':
+      newType = 'close';
+      break;
+    // https://github.com/ant-design/ant-design/issues/13007
+    case 'interation':
+      newType = 'interaction';
+      break;
+    // https://github.com/ant-design/ant-design/issues/16810
+    case 'canlendar':
+      newType = 'calendar';
+      break;
+    // https://github.com/ant-design/ant-design/issues/17448
+    case 'colum-height':
+      newType = 'column-height';
+      break;
+    default:
+  }
+  warning(
+    newType === type,
+    'Icon',
+    `Icon '${type}' was a typo and is now deprecated, please use '${newType}' instead.`
+  );
+  return newType;
+}
+
+import ReactIcon from '@ant-design/icons-react';
+// 设置双色
+export function setTwoToneColor(primaryColor: string): void {
+  return ReactIcon.setTwoToneColors({
+    primaryColor
+  });
+}
+// 获取双色
+export function getTwoToneColor(): string {
+  const colors = ReactIcon.getTwoToneColors();
+  return colors.primaryColor;
+}
+```
+
+## 接口
+
+```js
+
+// Initial setting
+ReactIcon.add(...Object.keys(allIcons).map(key => (allIcons as any)[key]));
+setTwoToneColor('#1890ff');
+let defaultTheme: ThemeType = 'outlined';
+let dangerousTheme: ThemeType | undefined;
+
+function unstable_ChangeThemeOfIconsDangerously(theme?: ThemeType) {
+  warning(
+    false,
+    'Icon',
+    `You are using the unstable method 'Icon.unstable_ChangeThemeOfAllIconsDangerously', ` +
+      `make sure that all the icons with theme '${theme}' display correctly.`,
+  );
+  dangerousTheme = theme;
+}
+
+function unstable_ChangeDefaultThemeOfIcons(theme: ThemeType) {
+  warning(
+    false,
+    'Icon',
+    `You are using the unstable method 'Icon.unstable_ChangeDefaultThemeOfIcons', ` +
+      `make sure that all the icons with theme '${theme}' display correctly.`,
+  );
+  defaultTheme = theme;
+}
+
+export interface TransferLocale {
+  icon: string;
+}
+
+export interface CustomIconComponentProps {
+  width: string | number;
+  height: string | number;
+  fill: string;
+  viewBox?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  spin?: boolean;
+  rotate?: number;
+  ['aria-hidden']?: React.AriaAttributes['aria-hidden'];
+}
+
+export type ThemeType = 'filled' | 'outlined' | 'twoTone';
+
+export interface IconProps {
+  tabIndex?: number;
+  type?: string;
+  className?: string;
+  theme?: ThemeType;
+  title?: string;
+  onKeyUp?: React.KeyboardEventHandler<HTMLElement>;
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  component?: React.ComponentType<CustomIconComponentProps>;
+  twoToneColor?: string;
+  viewBox?: string;
+  spin?: boolean;
+  rotate?: number;
+  style?: React.CSSProperties;
+  prefixCls?: string;
+  role?: string;
+}
+
+export interface IconComponent<P> extends React.SFC<P> {
+  createFromIconfontCN: typeof createFromIconfontCN;
+  getTwoToneColor: typeof getTwoToneColor;
+  setTwoToneColor: typeof setTwoToneColor;
+  unstable_ChangeThemeOfIconsDangerously?: typeof unstable_ChangeThemeOfIconsDangerously;
+  unstable_ChangeDefaultThemeOfIcons?: typeof unstable_ChangeDefaultThemeOfIcons;
+}
+
+```
+
+## 结构
+
+```js
+const Icon: IconComponent<IconProps> = props => {
+  const {
+    // affect outter <i>...</i>
+    className,
+
+    // affect inner <svg>...</svg>
+    type,
+    component: Component,
+    viewBox,
+    spin,
+    rotate,
+
+    tabIndex,
+    onClick,
+
+    // children
+    children,
+
+    // other
+    theme, // default to outlined
+    twoToneColor,
+
+    ...restProps
+  } = props;
+
+  warning(
+    Boolean(type || Component || children),
+    'Icon',
+    'Should have `type` prop or `component` prop or `children`.'
+  );
+
+  const classString = classNames(
+    {
+      [`anticon`]: true,
+      [`anticon-${type}`]: Boolean(type)
+    },
+    className
+  );
+
+  const svgClassString = classNames({
+    [`anticon-spin`]: !!spin || type === 'loading'
+  });
+
+  let innerNode: React.ReactNode;
+
+  const svgStyle = rotate
+    ? {
+        msTransform: `rotate(${rotate}deg)`,
+        transform: `rotate(${rotate}deg)`
+      }
+    : undefined;
+
+  const innerSvgProps: CustomIconComponentProps = {
+    ...svgBaseProps,
+    className: svgClassString,
+    style: svgStyle,
+    viewBox
+  };
+
+  if (!viewBox) {
+    delete innerSvgProps.viewBox;
+  }
+
+  // component > children > type
+  if (Component) {
+    innerNode = <Component {...innerSvgProps}>{children}</Component>;
+  }
+
+  if (children) {
+    warning(
+      Boolean(viewBox) ||
+        (React.Children.count(children) === 1 &&
+          React.isValidElement(children) &&
+          React.Children.only(children).type === 'use'),
+      'Icon',
+      'Make sure that you provide correct `viewBox`' +
+        ' prop (default `0 0 1024 1024`) to the icon.'
+    );
+    innerNode = (
+      <svg {...innerSvgProps} viewBox={viewBox}>
+        {children}
+      </svg>
+    );
+  }
+
+  if (typeof type === 'string') {
+    let computedType = type;
+    if (theme) {
+      const themeInName = getThemeFromTypeName(type);
+      warning(
+        !themeInName || theme === themeInName,
+        'Icon',
+        `The icon name '${type}' already specify a theme '${themeInName}',` +
+          ` the 'theme' prop '${theme}' will be ignored.`
+      );
+    }
+    computedType = withThemeSuffix(
+      removeTypeTheme(alias(computedType)),
+      dangerousTheme || theme || defaultTheme
+    );
+    innerNode = (
+      <ReactIcon
+        className={svgClassString}
+        type={computedType}
+        primaryColor={twoToneColor}
+        style={svgStyle}
+      />
+    );
+  }
+
+  let iconTabIndex = tabIndex;
+  if (iconTabIndex === undefined && onClick) {
+    iconTabIndex = -1;
+  }
+
+  return (
+    <LocaleReceiver componentName="Icon">
+      {(locale: TransferLocale) => (
+        <i
+          aria-label={type && `${locale.icon}: ${type}`}
+          {...restProps}
+          tabIndex={iconTabIndex}
+          onClick={onClick}
+          className={classString}
+        >
+          {innerNode}
+        </i>
+      )}
+    </LocaleReceiver>
+  );
+};
+
+Icon.createFromIconfontCN = createFromIconfontCN;
+Icon.getTwoToneColor = getTwoToneColor;
+Icon.setTwoToneColor = setTwoToneColor;
+```
