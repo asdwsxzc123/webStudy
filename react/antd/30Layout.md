@@ -368,7 +368,7 @@ export interface SiderState {
 ## Sider 结构
 
 ```js
-
+// 闭包,自执行函数,保存变量,内存不会被释放
 const generateId = (() => {
   let i = 0;
   return (prefix: string = '') => {
@@ -387,7 +387,7 @@ class InternalSider extends React.Component<InternalSideProps, SiderState> {
     style: {},
     theme: 'dark' as SiderTheme,
   };
-
+  // 直接修改state的值,而不是直接通过props来修改visible
   static getDerivedStateFromProps(nextProps: InternalSideProps) {
     // 从外层传入,修改state
     if ('collapsed' in nextProps) {
@@ -459,6 +459,7 @@ class InternalSider extends React.Component<InternalSideProps, SiderState> {
   };
 
   setCollapsed = (collapsed: boolean, type: CollapseType) => {
+    // 不存在,直接修改,存在就放入到回调函数中
     if (!('collapsed' in this.props)) {
       this.setState({
         collapsed,
