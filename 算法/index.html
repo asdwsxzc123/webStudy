@@ -1,31 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Document</title>
-  </head>
-  <body></body>
-  <script>
-    var str = '[()]';
-    function isValid(s) {
-      var stack = [];
-      var parenMap = {
-        ')': '(',
-        ']': '[',
-        '}': '{'
-      };
-      for (var i = 0; i < s.length; i++) {
-        var c = s[i];
-        if (!parenMap[c]) {
-          stack.push(c);
-        } else if (parenMap[c] !== stack.pop()) {
-          return false;
-        }
-      }
-      return true;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Document</title>
+</head>
+
+<body></body>
+<script>
+
+  /**
+   * @param {number} k
+   * @param {number[]} nums
+   */
+  var KthLargest = function (k, nums) {
+    this.k = k
+    let sortedNum = nums.sort((a, b) => b - a) // 降序
+    this.maxList = sortedNum
+    if (nums.length > k) {
+      this.maxList = sortedNum.slice(0, k)
     }
-    console.log(isValid(str));
-  </script>
+  };
+
+  /** 
+   * @param {number} val
+   * @return {number}
+   */
+  KthLargest.prototype.add = function (val) {
+    this.maxList.push(val)
+    // 长度不够
+    if (this.maxList.length < this.k) {
+      return null
+    }
+    this.maxList = this.maxList.sort((a, b) => b - a).slice(0, this.k)
+    return this.maxList[this.k - 1]
+  };
+
+  /**
+   * Your KthLargest object will be instantiated and called as such:
+   * var obj = new KthLargest(k, nums)
+   * var param_1 = obj.add(val)
+   */
+  var k = 1;
+  var arr = [];
+  let thLargest = new KthLargest(k, arr);
+  console.log(thLargest.add(-1));   // returns 4
+  console.log(thLargest.add(-3));   // returns 5
+  console.log(thLargest.add(1));  // returns 5
+  console.log(thLargest.add(9));   // returns 8
+  console.log(thLargest.add(4));   // returns 8
+</script>
+
 </html>
