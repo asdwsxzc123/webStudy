@@ -1,31 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Document</title>
-  </head>
-  <body></body>
-  <script>
-    var str = '[()]';
-    function isValid(s) {
-      var stack = [];
-      var parenMap = {
-        ')': '(',
-        ']': '[',
-        '}': '{'
-      };
-      for (var i = 0; i < s.length; i++) {
-        var c = s[i];
-        if (!parenMap[c]) {
-          stack.push(c);
-        } else if (parenMap[c] !== stack.pop()) {
-          return false;
-        }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Document</title>
+</head>
+
+<body></body>
+<script>
+  var quickSort = function (arr) {
+    if (arr.length <= 1) return arr
+    let leftArr = []
+    let rightArr = []
+    let pivotIndex = Math.floor(arr.length / 2)
+    let povit = arr.splice(pivotIndex, 1)[0]
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] < povit) {
+        leftArr.push(arr[i])
+      } else {
+        rightArr.push(arr[i])
       }
-      return true;
     }
-    console.log(isValid(str));
-  </script>
+    return quickSort(leftArr).concat(povit, quickSort(rightArr))
+  };
+
+
+</script>
+
 </html>
