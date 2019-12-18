@@ -10,23 +10,70 @@
 
 <body></body>
 <script>
-  var quickSort = function (arr) {
-    if (arr.length <= 1) return arr
-    let leftArr = []
-    let rightArr = []
-    let pivotIndex = Math.floor(arr.length / 2)
-    let povit = arr.splice(pivotIndex, 1)[0]
-    for (let i = 0; i < arr.length; i++) {
-      if (arr[i] < povit) {
-        leftArr.push(arr[i])
+  // sort 从小到大, reverse 从大到小
+  function QuitSort(list, type = 'reverse') {
+    if (!list) return []
+    if (list.length <= 1) return list
+    // 基准
+    let povitIndex = Math.floor(list.length / 2)
+    let povit = list.splice(povitIndex, 1)
+    // 遍历大于基准右侧,小于基准左侧数组
+    let left = []
+    let right = []
+    list.forEach(item => {
+      if (povit > item) {
+        if (type === 'reverse') {
+          right.push(item)
+        } else {
+          left.push(item)
+        }
       } else {
-        rightArr.push(arr[i])
+        if (type === 'reverse') {
+          left.push(item)
+        } else {
+          right.push(item)
+        }
       }
-    }
-    return quickSort(leftArr).concat(povit, quickSort(rightArr))
+    });
+    return QuitSort(left).concat(povit, QuitSort(right))
+    // 只保留一个元素为止
+  }
+  /**
+   * @param {number[]} nums
+   * @param {number} k
+   * @return {number[]}
+   */
+
+  var maxSlidingWindow = function (nums, k) {
+    // 先判断数据的合法性
+    if (!nums) return []
+    // 1. 需要一个数组push最大值,还需要一个数组push k个元素
+    let arr = []
+    let maxList = []
+    nums.forEach((num, i) => {
+      // 实现push和shift操作,num[0]永远是最大值
+      // shift操作,当下标>=k,并且第0项索引<=i-k的时候才需要将第一个弹出,
+      if (i >= k && arr[0] <= i - k) {
+        arr.shift()
+      }
+      // 新的数据插入会删除之前小的数据
+      for (let j = arr.length - 1; j >= 0; j--) {
+        const element = nums[arr[j]];
+        if (element <= num) {
+          arr.pop()
+        }
+      }
+      // 每次遍历都会push一次
+      arr.push(i)
+      // 只有i >= k - 1(单一职责,这里值做插入到maxList的操作)
+      if (i >= k - 1) {
+        maxList.push(nums[arr[0]])
+      }
+    });
+    return maxList
   };
-
-
+  var nums = [1, 3, 1, 2, 0, 5], k = 3
+  console.log(maxSlidingWindow(nums, k))
 </script>
 
 </html>
