@@ -10,44 +10,38 @@
 
 <body></body>
 <script>
-  var nums = [2, 7, 11, 15], target = 9
-  var twoSum = function (nums, target) {
-    let map = {}
-    for (let i = 0; i < nums.length; i++) {
-      map[nums[i]] = i;
-    }
-    for (let i = 0; i < nums.length; i++) {
-      // 另一个数,如果在map中,
-      let one = target - nums[i]
-      if (map[one] !== undefined && i !== map[one]) {
-        return [i, map[one]]
+  let root = {
+    val: 5,
+    left: {
+      val: 1,
+      left: {
+        val: null
+      },
+      right: {
+        val: null
+      }
+    },
+    right: {
+      val: 4,
+      left: {
+        val: 3
+      },
+      right: {
+        val: 6
       }
     }
-    return null
+  }
+  var isValidBST = function (root, arr = []) {
+    if (!root) return true;
+    return isValidBST(root.left, arr) && compareAndPush(root.val, arr) && isValidBST(root.right, arr);
   };
-  function setMap(list) {
-    let map = {}
-    for (let i = 0; i < list.length; i++) {
-      const item = list[i];
-      if (!map[item]) {
-        map[item] = 1
-      } else {
-        map[item]++
-      }
-    }
-    return map
+
+  function compareAndPush(val, arr) {
+    if (arr.length) if (arr[arr.length - 1] >= val) return false
+    arr.push(val);
+    return true;
   }
-  function isEqualObj(a, b) {
-    let aKeys = Object.keys(a)
-    let bKeys = Object.keys(b)
-    let flag = true
-    bKeys.some(key => {
-      flag = a[key] === b[key]
-      return a[key] !== b[key]
-    })
-    return flag
-  }
-  console.log(twoSum(nums, target))
+  console.log(isValidBST(root))
 </script>
 
 </html>
