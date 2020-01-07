@@ -1,139 +1,188 @@
 ## Promise
-
-Promise 是 ES6 新增的语法，解决了回调地狱的问题。
-
-可以把 Promise 看成一个状态机。初始是 pending 状态，可以通过函数 resolve 和 reject ，将状态转变为 resolved 或者 rejected 状态，状态一旦改变就不能再次变化。
-
-then 函数会返回一个 Promise 实例，并且该返回值是一个新的实例而不是之前的实例。因为 Promise 规范规定除了 pending 状态，其他状态是不可以改变的，如果返回的是一个相同实例的话，多个 then 调用就失去意义了。
-
-对于 then 来说，本质上可以把它看成是 flatMap
-
+1. 基本架构
 ```js
-// 三种状态
-const PENDING = 'pending';
-const RESOLVED = 'resolved';
-const REJECTED = 'rejected';
-
-// promise 接收一个函数参数,该函数会立即执行
-function MyPromise(fn) {
-  let _this = this;
-  _this.currentState = PENDING;
-  _this.value = undefined;
-
-  // 用于保存then中的回调,只有当primise状态为pending时才会缓存,并且每个实例至多缓存一个
-  _this.resolvedCallbacks = []
-  _this.rejectedCallbacks = []
-
-  _this.resolve = function (value) {
-    if (value instanceOf MyPromise) {
-        // 如果value是个Promise,递归执行
-        return value.then(_this.resolve,_this.reject)
-    }
-    setTimeout(() => {
-      // 异步执行,保证执行顺序
-      if (_this.currentState === PENDING) {
-        _this.currentState = RESOLVED;
-        _this.value = value;
-        _this.resolvedCallbacks.forEach(cb => cb())
+ // 三种状态
+    const PENDING = 'pending' // 运行中
+    const RESOLVED = 'resolved' // 成功
+    const REJECTED = 'rejected' // 失败
+    function MyPromise(fn) {
+      let _this = this;
+      // promise有2个函数,注册resolve和reject
+      _this.resolve = function (value) {
+        console.log(value)
       }
-    })
-  }
+      _this.reject = function (season) {
 
-   _this.reject = function (reason) {
-    setTimeout(() => { // 异步执行，保证执行顺序
-      if (_this.currentState === PENDING) {
-        _this.currentState = REJECTED;
-        _this.value = reason;
-        _this.rejectedCallbacks.forEach(cb => cb());
       }
-    })
-  }
-  // 用于解决以下问题
-  // new Promise(() => throw Error('error))
-  try {
-    fn(_this.resolve, _this.reject);
-  } catch (e) {
-    _this.reject(e);
-  }
-}
 
-MyPromise.prototype.then = function (onResolved, onRejected) {
-  var self = this;
-  // 规范 2.2.7,then必须返回一个新的promise
-  var promise2;
-  // 规范 2.2.onResolved 和 onRejected 都为可选参数
-  // 如果类型不是函数需要忽略,同事也实现了透传
-  // Promise.resolved(4).then().then(value => console.log(value))
-  onResolved = typeof onResolved === 'function' ? onResolved : v => v;
-  onRejected  = typeof onRejected  === 'function' ? onRejected  : r => throw r;
+      // 执行promise回调,需要放在trycatch中,要不然异常无法捕获
+      try {
+        fn(_this.resolve, _this.reject)
+      } catch (e) {
+        _this.reject(e)
+      }
 
-  if (self.currentState === RESOLVED) {
-    return (promise2 = new MyPromise(function (resolve, reject){
-      // 规范 2.2.4，保证 onFulfilled，onRjected 异步执行
-      // 所以用了 setTimeout 包裹下
-      setTimeout(function () {
-        try {
-          var x = onResolved(self.value);
-          resolutionProcedure(promise2, x, resolve, reject);
-        } catch (reason) {
-          reject(reason);
-        }
-      })
-    }))
-  }
-  if (self.currentState === REJECTED) {
-    return (promise2 = new MyPromise(function (resolve, reject) {
-      setTimeout(function () {
-        // 异步执行onRejected
-        try {
-          var x = onRejected(self.value);
-          resolutionProcedure(promise2, x, resolve, reject);
-        } catch (reason) {
-          reject(reason);
-        }
-      });
-    }));
-  }
-  if (self.currentState === PENDING) {
-    return (promise2 = new MyPromise(function (resolve, reject) {
-      self.resolvedCallbacks.push(function () {
-        // 考虑到可能会有报错，所以使用 try/catch 包裹
-        try {
-          var x = onResolved(self.value);
-          resolutionProcedure(promise2, x, resolve, reject);
-        } catch (r) {
-          reject(r);
-        }
-      });
-
-      self.rejectedCallbacks.push(function () {
-        try {
-          var x = onRejected(self.value);
-          resolutionProcedure(promise2, x, resolve, reject);
-        } catch (r) {
-          reject(r);
-        }
-      });
-    }));
-  }
-}
-// 规范2.3
-function resolutionprocedure(promise2, x,resolve, reject) {
-  // 规范 2.3.1，x 不能和 promise2 相同，避免循环引用
-  if (promise2 === x) {
-    return reject(new TypeError("Error"));
-  }
-  // 规范 2.3.2
-  // 如果x为promise,状态为pending需要继续等待否则执行
-  if (x instanceof MyPromise) {
-    if (x.currentState === PENDING) {
-      x.then(function (value) {
-
-      })
     }
-  }
-}
+    let myPromise = new MyPromise(resolve => {
+      setTimeout(() => {
+        console.log(2)
+        return resolve(1)
+      });
+    }, reject => {
+      return reject()
+    })
 ```
 
-抄录自[前端进阶之道](https://yuchengkai.cn/docs/frontend/#promise-%E5%AE%9E%E7%8E%B0)
+2. 添加状态机和then的调用
+  添加状态机,添加then
+
+  Promise是一个状态机的机制，初始状态为 pending，成功状态为 fulfilled，失败状态为 rejected。只能从 pending -> fulfilled，或者从 pending -> rejected，并且状态一旦转变，就永远不会再变了。
+    
+  所以，我们需要为Promise添加一个状态流转的机制。
+
+  Promise拥有一个then方法，接收两个函数 onFulfilled 和 onRejected，分别作为Promise成功和失败的回调。所以，在then方法中我们需要对状态state进行判断，如果是fulfilled，则执行onFulfilled(value)方法，如果是rejected，则执行onRejected(reason)方法。
+    
+  由于成功值value和失败原因reason是由用户在executor中通过resolve(value) 和 reject(reason)传入的，所以我们需要有一个全局的value和reason供后续方法获取
+```js
+    const PENDING = 'pending' // 运行中
+    const FULFILLED = 'fulfilled' // 成功
+    const REJECTED = 'rejected' // 失败
+    function MyPromise(fn) {
+      let _this = this;
+      // 注册全局value和reason
+      _this.state = PENDING;
+      _this.value = undefined;
+      _this.reason = undefined;
+      // promise有2个函数,注册resolve和reject
+      _this.resolve = function (value) {
+        if (_this.state === PENDING) {
+          _this.state = FULFILLED
+          _this.value = value
+        }
+      }
+      _this.reject = function (reason) {
+        if (_this.state === PENDING) {
+          _this.state = REJECTED
+          _this.reason = reason
+        }
+
+      }
+
+      // 执行promise回调,需要放在trycatch中,要不然异常无法捕获
+      try {
+        fn(_this.resolve, _this.reject)
+      } catch (reason) {
+        _this.reject(reason)
+      }
+
+    }
+
+    MyPromise.prototype = {
+      then: function (onFulfilled, onRejected) {
+        let self = this;
+        if (self.state === FULFILLED) {
+          onFulfilled(self.value)
+        }
+        if (self.state === REJECTED) {
+          onRejected(self.reason)
+        }
+      }
+    }
+    let myPromise = new MyPromise(resolve => {
+      console.log('res')
+      return resolve(1)
+    }, reject => {
+      console.log('e')
+      return reject()
+    })
+      .then(function (value) {
+        console.log('then-value', value);
+      }, function (reason) {
+        console.log('then-reason', reason);
+      })
+```
+
+3.  实现异步调用resolve
+
+    同步调用resolve()没有问题，但如果是异步调用，比如放到setTimeout中，因为目前的代码在调用then()方法时，state仍是pending状态，当timer到时候调用resolve()把state修改为fulfilled状态，但是onFulfilled()函数已经没有时机调用了。
+```js
+    const PENDING = 'pending' // 运行中
+    const FULFILLED = 'fulfilled' // 成功
+    const REJECTED = 'rejected' // 失败
+    function MyPromise(fn) {
+      let _this = this;
+      // 注册全局value和reason
+      _this.state = PENDING;
+      _this.value = undefined;
+      _this.reason = undefined;
+
+      // 添加fulfilledCb,rejectCb队列
+      _this.onFulfilledCallbacks = []
+      _this.onRejectedCallbacks = []
+      // promise有2个函数,注册resolve和reject
+      _this.resolve = function (value) {
+        if (_this.state === PENDING) {
+          _this.state = FULFILLED
+          _this.value = value
+          _this.onFulfilledCallbacks.forEach(cb => cb())
+        }
+      }
+      _this.reject = function (reason) {
+        if (_this.state === PENDING) {
+          _this.state = REJECTED
+          _this.reason = reason
+          _this.onRejectedCallbacks.forEach(cb => cb())
+        }
+
+      }
+
+      // 执行promise回调,需要放在trycatch中,要不然异常无法捕获
+      try {
+        fn(_this.resolve, _this.reject)
+      } catch (reason) {
+        _this.reject(reason)
+      }
+
+    }
+
+    MyPromise.prototype = {
+      then: function (onFulfilled, onRejected) {
+        let self = this;
+
+        // 状态机在pending状态,添加异步执行队列
+        if (self.state === PENDING) {
+          self.onFulfilledCallbacks.push(() => {
+            onFulfilled(self.value)
+          })
+          self.onRejectedCallbacks.push(() => {
+            onRejected(self.reason)
+          })
+        }
+
+        if (self.state === FULFILLED) {
+          onFulfilled(self.value)
+        }
+        if (self.state === REJECTED) {
+          onRejected(self.reason)
+        }
+      }
+    }
+    let myPromise = new MyPromise(resolve => {
+      setTimeout(() => {
+        console.log('res')
+        return resolve(1)
+      }, 3000);
+    }, reject => {
+      console.log('e')
+      return reject()
+    })
+      .then(function (value) {
+        console.log('then-value', value);
+      }, function (reason) {
+        console.log('then-reason', reason);
+      })
+```
+
+
+抄录自[从0到1实现Promise](https://segmentfault.com/a/1190000016550260)
 [promise 规范](https://promisesaplus.com/)
