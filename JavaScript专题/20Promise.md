@@ -184,5 +184,144 @@
 ```
 
 
+4. then返回promise/报错/普通值,普通函数当普通值返回
+```js
+// 1. then()方法返回的仍是一个Promise，并且返回Promise的resolve的值是上一个Promise的onFulfilled()函数或onRejected()函数的返回值。
+  // 2. 如果在上一个Promise的then()方法回调函数的执行过程中发生了错误，那么会将其捕获到，并作为返回的Promise的onRejected函数的参数传入
+  const PENDING = 'PENDING'
+  const FULFILLED = 'FULFILLED'
+  const REJECTED = 'REJECTED'
+  function MyPromise(fn) {
+    let _this = this;
+    _this.value = null
+    _this.season = null;
+    _this.state = PENDING
+
+    // 异步问题,需要引入异步队列
+    _this.onFulfilledCb = []
+    _this.onRejectedCb = []
+    _this.resolve = function (value) {
+      if (_this.state === PENDING) {
+        _this.state = FULFILLED
+        _this.value = value
+        _this.onFulfilledCb.forEach(cb => cb())
+      }
+    }
+    _this.reject = function (season) {
+      if (_this.state === PENDING) {
+        _this.state = REJECTED
+        _this.season = season
+        _this.onRejectedCb.forEach(cb => cb())
+      }
+    }
+    // 解决抛错问题
+    try {
+      fn(_this.resolve, _this.reject)
+    } catch (season) {
+      _this.reject(season)
+    }
+  }
+
+  MyPromise.prototype = {
+    // 链式调用then,需要获取上一个then的返回值,如果为空,返回undefind
+    then: function (onFulfilled, onRejected) {
+      let self = this
+      let promise2 = null
+      promise2 = new MyPromise((resolve, reject) => {
+        if (self.state === PENDING) {
+          self.onFulfilledCb.push(() => {
+            try {
+              // 如果回调有返回值,设置返回值给value
+              let x = onFulfilled(self.value)
+              self.resolvePromise(promise2, x, resolve, reject)
+            } catch (error) {
+              reject(error)
+            }
+
+          })
+          self.onRejectedCb.push(() => {
+            try {
+              let x = onRejected(self.season)
+              self.resolvePromise(promise2, x, resolve, reject)
+            } catch (error) {
+              reject(error)
+            }
+
+          })
+        }
+        if (self.state === FULFILLED) {
+          try {
+            let x = onFulfilled(self.value)
+            self.resolvePromise(promise2, x, resolve, reject)
+          } catch (error) {
+            reject(error)
+          }
+        }
+        if (self.state === REJECTED) {
+          try {
+            let x = onRejected(self.season)
+            self.resolvePromise(promise2, x, resolve, reject)
+          } catch (error) {
+            reject(error)
+          }
+
+        }
+      })
+      return promise2
+    },
+    // 链式调用then,需要获取上一个then的返回值,如果为空,返回undefind
+    resolvePromise: function (promise2, x, resolve, reject) {
+      let self = this;
+      let called = false; // 防止 多次调用
+      if (promise2 === x) {
+        return reject(new TypeError('循环引用'))
+      }
+
+      // 如果是对象或函数,且不是null
+      if (x !== null && (Object.prototype.toString.call(x) === '[object Function]' || Object.prototype.toString.call(x) === '[object Object]')) {
+        try {
+          let then = x.then;
+          if (typeof then === 'function') {
+            then.call(x, (value) => {
+              if (called) return
+              called = true;
+              self.resolvePromise(promise2, value, resolve, reject)
+            }, (season) => {
+              if (called) return
+              called = true;
+              reject(season)
+            })
+          } else {
+            if (called) return
+            called = true;
+            resolve(x)
+          }
+        } catch (error) {
+          if (called) return
+          called = true;
+          reject(error)
+        }
+      } else {
+        resolve(x)
+      }
+
+    }
+  }
+  let promise = new MyPromise((resolve, reject) => {
+    setTimeout(() => {
+      resolve(123);
+    }, 111);
+  }).then(res => {
+
+    return new MyPromise((resove, reject) => {
+      resove('prmose')
+    })
+  }).then(res => {
+    console.log('res2', res)
+  }, err => console.log(err)).then(res => {
+    console.log('res3', res)
+  })
+```
+
 抄录自[从0到1实现Promise](https://segmentfault.com/a/1190000016550260)
 [promise 规范](https://promisesaplus.com/)
