@@ -323,5 +323,255 @@
   })
 ```
 
+5. 让then()方法的回调函数总是异步调用
+
+Promise属于微任务，这里我们为了方便用宏任务setTiemout来代替实现异步
+```js
+    const PENDING = 'pending' // 运行中
+    const FULFILLED = 'fulfilled' // 成功
+    const REJECTED = 'rejected' // 失败
+    function MyPromise(fn) {
+      let _this = this;
+      // 注册全局value和reason
+      _this.state = PENDING;
+      _this.value = undefined;
+      _this.reason = undefined;
+
+      // 添加fulfilledCb,rejectCb队列
+      _this.onFulfilledCallbacks = []
+      _this.onRejectedCallbacks = []
+      // promise有2个函数,注册resolve和reject
+      _this.resolve = function (value) {
+        if (_this.state === PENDING) {
+          _this.state = FULFILLED
+          _this.value = value
+          _this.onFulfilledCallbacks.forEach(cb => cb())
+        }
+      }
+      _this.reject = function (reason) {
+        if (_this.state === PENDING) {
+          _this.state = REJECTED
+          _this.reason = reason
+          _this.onRejectedCallbacks.forEach(cb => cb())
+        }
+
+      }
+
+      // 执行promise回调,需要放在trycatch中,要不然异常无法捕获
+      try {
+        fn(_this.resolve, _this.reject)
+      } catch (reason) {
+        _this.reject(reason)
+      }
+
+    }
+
+    MyPromise.prototype = {
+      then: function (onFulfilled, onRejected) {
+        let self = this;
+        let promise2 = null;
+        promise2 = new MyPromise((resolve, reject) => {
+          // 状态机在pending状态,添加异步执行队列
+          if (self.state === PENDING) {
+            self.onFulfilledCallbacks.push(() => {
+              setTimeout(() => {
+                try {
+                  let x = onFulfilled(self.value)
+                  self.resolvePromise(promise2, x, resolve, reject);
+                } catch (error) {
+                  reject(error)
+                }
+              }, 0);
+            })
+            self.onRejectedCallbacks.push(() => {
+              setTimeout(() => {
+                try {
+                  let x = onRejected(self.reason)
+                  self.resolvePromise(promise2, x, resolve, reject);
+                } catch (error) {
+                  reject(error)
+                }
+              }, 0);
+            })
+          }
+
+          if (self.state === FULFILLED) {
+            setTimeout(() => {
+              try {
+                let x = onFulfilled(self.value)
+                self.resolvePromise(promise2, x, resolve, reject);
+              } catch (error) {
+                reject(error)
+              }
+            }, 0);
+          }
+          if (self.state === REJECTED) {
+            setTimeout(() => {
+              try {
+                let x = onRejected(self.reason)
+                self.resolvePromise(promise2, x, resolve, reject);
+              } catch (error) {
+                reject(error)
+              }
+            }, 0);
+          }
+        })
+        return promise2
+      }
+      ,
+      resolvePromise: function (promise2, x, resolve, reject) {
+        let self = this;
+        let called = false;   // called 防止多次调用
+
+        if (promise2 === x) {
+          return reject(new TypeError('循环引用'));
+        }
+
+        if (x !== null && (Object.prototype.toString.call(x) === '[object Object]' || Object.prototype.toString.call(x) === '[object Function]')) {
+          // x是对象或者函数
+          try {
+            let then = x.then;
+            if (typeof then === 'function') {
+
+              then.call(x, (value) => {
+                if ((called)) return;
+                called = true
+                self.resolvePromise(promise2, value, resolve, reject)
+              }, reason => {
+                if ((called)) return;
+                called = true
+                reject(reason)
+              })
+            } else {
+              if ((called)) return;
+              called = true
+              resolve(x)
+            }
+          } catch (error) {
+            if ((called)) return;
+            called = true
+            reject(errror)
+          }
+        } else {
+          // 普通类型
+          resolve(x)
+        }
+      }
+
+    }
+    console.log('start');
+
+    let promise = new MyPromise((resolve, reject) => {
+      console.log('step-');
+      resolve(123);
+    });
+
+    promise.then((value) => {
+      console.log('step--');
+      console.log('value', value);
+    });
+
+    console.log('end');
+```
+
+6. catch()
+```js
+MyPromise.prototype = {
+  then: function (onFulfilled, onRejected) {
+    // 给ful和reject加默认值
+    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : value => { return value; };
+    onRejected = typeof onRejected === 'function' ? onRejected : reason => { throw reason };
+  },
+  catch: function (onRejected) {
+    let self = this;
+    debugger
+    return self.then(null, onRejected)
+  }
+}
+
+let promise = new MyPromise((resolve, reject) => {
+  resolve(123);
+});
+promise.then((value) => {
+  console.log('value', value);
+  return new MyPromise((resolve, reject) => {
+    reject('has error1');
+  });
+}).then((value) => {
+  console.log('value1', value);
+}).catch((reason) => {
+  console.log('reason', reason);
+});
+```
+
+7. 实现finally方法
+```js
+Mypromise.prototype.finally = function(fn) {
+    return this.then(value => {
+       fn();
+       return value;
+    }, reason => {
+        fn();
+        throw reason;
+    });
+};
+```
+
+8. 实现Promise.all方法(静态方法)
+Promise.all()接收一个包含多个Promise的数组，当所有Promise均为fulfilled状态时，返回一个结果数组，数组中结果的顺序和传入的Promise顺序一一对应。如果有一个Promise为rejected状态，则整个Promise.all为rejected。
+```js
+Promise.all =function(promiseArr) {
+  return new MyPromise((resolve, reject) => {
+    let result = [];
+
+    promiseArr.forEach((promise, index) => {
+      promise.then((value) => {
+        result[index] = value;
+
+        if (result.length === promiseArr.length) {
+          resolve(result);
+        }
+      }, reject);
+    });
+  });
+};
+```
+
+9. 实现Promise.race方法
+Promise.race()接收一个包含多个Promise的数组，当有一个Promise为fulfilled状态时，整个大的Promise为onfulfilled，并执行onFulfilled回调函数。如果有一个Promise为rejected状态，则整个Promise.race为rejected。
+```js
+MyPromise.race = function(promiseArr) {
+  return new MyPromise((resolve, reject) => {
+    promiseArr.forEach(promise => {
+      promise.then((value) => {
+        resolve(value);   
+      }, reject);
+    });
+  });
+};
+```
+
+10. 实现Promise.resolve方法
+Promise.resolve用来生成一个fulfilled完成态的Promise，一般放在整个Promise链的开头，用来开始一个Promise链。
+```js
+MyPromise.resolve = function(value) {
+  let promise;
+
+  promise = new MyPromise((resolve, reject) => {
+    this.prototype.resolvePromise(promise, value, resolve, reject);
+  });
+
+  return promise;
+};
+```
+
+11. 实现Promise.reject方法
+```js
+MyPromise.reject = function(reason) {
+  return new MyPromise((resolve, reject) => {
+    reject(reason);
+  });
+};
+```
 抄录自[从0到1实现Promise](https://segmentfault.com/a/1190000016550260)
 [promise 规范](https://promisesaplus.com/)
