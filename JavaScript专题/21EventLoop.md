@@ -102,4 +102,4 @@ console.log(10);
 在执行微队列microtask queue中任务的时候，如果又产生了microtask，那么会继续添加到队列的末尾，也会在这个周期执行，直到microtask queue为空停止。
 
 
-抄录自[带你彻底弄懂Event Loop](https://segmentfault.com/a/1190000016278115)
+抄录自[带你彻底弄懂Event Loop](https://segmentfault.com/a/1190000016278115) 
