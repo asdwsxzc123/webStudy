@@ -1,0 +1,332 @@
+## 优势
+
+1. 方便逻辑复用
+
+## hooks 规则
+
+1. 只在顶层调用 hooks, 不要再循环 条件 或者潜逃函数中调用 hooks
+2. 只在函数组件中调用 hooks
+
+## 问题
+
+1. 生命周期函数如何映射到 hooks
+2. 类实例成员变量如何映射到 Hooks, 通过 useRef 来设置
+3. Hooks 中如何获取历史 props 和 state, useRef
+4. 如何强制更新一个 Hooks 组件
+
+```js
+function Counter() {
+  const [count, setCount] = useState(0);
+  const [updater, setUpdater] = useState(0);
+  // 强制刷新
+  function forceUpdate() {
+    setUpdater(updater => updater + 1);
+  }
+  // 获取历史值和类实例成员
+  const prevCountRef = useRef();
+  // 生命周期的映射
+  useEffect(() => {
+    prevCountRef.current = count;
+  });
+  const prevCount = prevCountRef.current;
+  return (
+    <h1>
+      {count}, {prevCount}
+    </h1>
+  );
+}
+```
+
+## useState, useEffect
+
+```js
+import React, { useState, useEffect } from "react";
+
+function App() {
+  const [count, setCount] = useState(0);
+  // 如果count变化,才重新渲染
+  useEffect(() => {
+    // componentDidMount
+    console.log("count", count);
+    // componentWillUnMount
+    return () => {};
+  }, [count]);
+  // 默认会执行
+  useEffect(() => {
+    // componentDidUpdate
+    if (count > 10) {
+      document.title = count;
+    }
+  });
+  // 不会执行,阻断式,相当于shouldUpdate
+  useEffect(() => {
+    console.log("count1", count);
+  }, []);
+  return (
+    <div className="App">
+      <button
+        onClick={() => {
+          setCount(count + 1);
+        }}
+      >
+        点击({count})
+      </button>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## context
+
+```js
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  createContext,
+  Component
+} from "react";
+const CountContext = createContext();
+
+class Foo extends Component {
+  render() {
+    return (
+      <CountContext.Consumer>
+        {count => <h1>{count || 0}</h1>}
+      </CountContext.Consumer>
+    );
+  }
+}
+class Bar extends Component {
+  static contextType = CountContext;
+  render() {
+    let count = this.context;
+    return <h1>{count || 0}</h1>;
+  }
+}
+function Counter() {
+  const count = useContext(CountContext);
+  return <h1>{count || 0}</h1>;
+}
+function App() {
+  const [count, setCount] = useState(0);
+  return (
+    <div className="App">
+      <CountContext.Provider value={count}>
+        <button
+          onClick={() => {
+            setCount(count + 1);
+          }}
+        >
+          点击({count})
+        </button>
+        <Foo></Foo>
+        <Bar></Bar>
+        <Counter></Counter>
+      </CountContext.Provider>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## 优化 memo
+
+```js
+import React, {
+  useState,
+  createContext,
+  useMemo,
+  memo,
+  useCallback
+} from "react";
+const CountContext = createContext();
+
+const Counter = memo(function Counter(props) {
+  console.log("render");
+  return <h1 onClick={props.onClick}>{props.count || 0}</h1>;
+});
+function App() {
+  const [count, setCount] = useState(0);
+  const [clickCount, setClickCount] = useState(0);
+  // 如果满足条件,才会计算
+  const double = useMemo(() => {
+    return count * 2;
+  }, [count === 3]);
+  // 可以依赖meno
+  // const half = useMemo(() => {
+  //   return double / 4;
+  // }, [double])
+
+  // 不刷新Counter组件,做组件优化
+  // 写法1,
+  const onClick = useMemo(() => {
+    return () => console.log("onClick");
+  }, []);
+  // 写法2
+  const onClick = useCallback(() => {
+    console.log("onClick");
+    setClickCount(clickCount => clickCount + 1);
+  }, []);
+  return (
+    <div className="App">
+      <CountContext.Provider value={count}>
+        <button
+          onClick={() => {
+            setCount(count + 1);
+          }}
+        >
+          点击({count},{double})
+        </button>
+        <Counter onClick={onClick} count={double}></Counter>
+      </CountContext.Provider>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## ref
+
+```js
+import React, {
+  useState,
+  PureComponent,
+  useMemo,
+  useCallback,
+  useRef,
+  useEffect
+} from "react";
+
+class Counter extends PureComponent {
+  speak = () => {
+    console.log(`now counter is ${this.props.count}`);
+  };
+  render() {
+    const { props } = this;
+    return <h1 onClick={props.onClick}> {props.count || 0}</h1>;
+  }
+}
+function App() {
+  const [count, setCount] = useState(0);
+  const [clickCount, setClickCount] = useState(0);
+  // 1. 获取子组件或者dom元素
+  const counterRef = useRef();
+  // 2. 同步不同数据之间需要共享的数据
+  let it = useRef();
+
+  // 如果满足条件,才会计算
+  const double = useMemo(() => {
+    return count * 2;
+  }, [count === 3]);
+  // 可以依赖meno
+  // const half = useMemo(() => {
+  //   return double / 4;
+  // }, [double])
+  const onClick = useCallback(() => {
+    console.log("onClick");
+    setClickCount(clickCount => clickCount + 1);
+    counterRef.current.speak();
+  }, [counterRef]);
+
+  useEffect(() => {
+    it.current = setInterval(() => {
+      setCount(count => count + 1);
+    }, 1000);
+  }, []);
+  useEffect(() => {
+    if (count >= 10) {
+      clearInterval(it.current);
+    }
+  });
+  return (
+    <div className="App">
+      <button
+        onClick={() => {
+          setCount(count + 1);
+        }}
+      >
+        点击({count},{double})
+      </button>
+      <Counter ref={counterRef} onClick={onClick} count={double}></Counter>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## 自定义组件
+
+```js
+import React, { useState, useRef, useEffect, useCallback } from "react";
+function useCounter(count) {
+  const size = useSize();
+  return (
+    <h1>
+      {count},{size.width}
+    </h1>
+  );
+}
+
+// 自定义hooks,需要使用use做前缀
+function useCount(defaultCount) {
+  const [count, setCount] = useState(defaultCount);
+  // 2. 同步不同数据之间需要共享的数据
+  let it = useRef();
+
+  useEffect(() => {
+    it.current = setInterval(() => {
+      setCount(count => count + 1);
+    }, 1000);
+  }, []);
+  useEffect(() => {
+    if (count >= 10) {
+      clearInterval(it.current);
+    }
+  });
+  return [count, setCount];
+}
+function useSize() {
+  const [size, setSize] = useState({
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight
+  });
+  const onResize = useCallback(() => {
+    setSize({
+      width: document.documentElement.clientWidth,
+      height: document.documentElement.clientHeight
+    });
+  });
+  useEffect(() => {
+    window.addEventListener("resize", onResize, false);
+    return () => {
+      window.removeEventListener("resize", onResize, false);
+    };
+  }, []);
+  return size;
+}
+function App() {
+  const [count, setCount] = useCount(0);
+  const Counter = useCounter(count);
+  const size = useSize();
+  return (
+    <div className="App">
+      <button
+        onClick={() => {
+          setCount(count + 1);
+        }}
+      >
+        点击({count}),{size.width}/{size.height}
+      </button>
+      {Counter}
+    </div>
+  );
+}
+
+export default App;
+```
