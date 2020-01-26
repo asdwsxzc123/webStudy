@@ -28,7 +28,7 @@ const typescriptFormatter = require("react-dev-utils/typescriptFormatter");
 const postcssNormalize = require("postcss-normalize");
 
 const appPackageJson = require(paths.appPackageJson);
-
+const { entry } = require("./var");
 // Source maps are resource heavy and can cause out of memory issue for large source files.
 const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== "false";
 // Some apps do not need the benefits of saving a web request, so not inlining the chunk
@@ -41,19 +41,57 @@ const imageInlineSizeLimit = parseInt(
 
 // Check if TypeScript is setup
 const useTypeScript = fs.existsSync(paths.appTsConfig);
-
 // style files regexes
 const cssRegex = /\.css$/;
 const cssModuleRegex = /\.module\.css$/;
 const sassRegex = /\.(scss|sass)$/;
 const sassModuleRegex = /\.module\.(scss|sass)$/;
-
 // This is the production and development configuration.
 // It is focused on developer experience, fast rebuilds, and a minimal bundle.
 module.exports = function(webpackEnv) {
   const isEnvDevelopment = webpackEnv === "development";
   const isEnvProduction = webpackEnv === "production";
-
+  const minifyObj = isEnvProduction
+    ? {
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeRedundantAttributes: true,
+          useShortDoctype: true,
+          removeEmptyAttributes: true,
+          removeStyleLinkTypeAttributes: true,
+          keepClosingSlash: true,
+          minifyJS: true,
+          minifyCSS: true,
+          minifyURLs: true
+        }
+      }
+    : undefined;
+  const entrys = {};
+  const htmlWebpackPluginData = [];
+  entry.forEach(key => {
+    // entry
+    entrys[key] = path.join(__dirname, `../src/${key}/index.js`);
+    // entrys[key] = [
+    //   isEnvDevelopment &&
+    //   require.resolve('react-dev-utils/webpackHotDevClient'),
+    //   path.join(__dirname, `../src/${key}/index.js`),
+    // ].filter(Boolean)
+    // html
+    htmlWebpackPluginData.push(
+      new HtmlWebpackPlugin(
+        Object.assign(
+          {
+            inject: true,
+            template: path.join(__dirname, `../public/${key}.html`),
+            filename: `${key}.html`,
+            chunks: [key]
+          },
+          minifyObj
+        )
+      )
+    );
+  });
   // Variable used for enabling profiling in Production
   // passed into alias object. Uses a flag if passed into the build command
   const isEnvProductionProfile =
@@ -146,25 +184,26 @@ module.exports = function(webpackEnv) {
       : isEnvDevelopment && "cheap-module-source-map",
     // These are the "entry points" to our application.
     // This means they will be the "root" imports that are included in JS bundle.
-    entry: [
-      // Include an alternative client for WebpackDevServer. A client's job is to
-      // connect to WebpackDevServer by a socket and get notified about changes.
-      // When you save a file, the client will either apply hot updates (in case
-      // of CSS changes), or refresh the page (in case of JS changes). When you
-      // make a syntax error, this client will display a syntax error overlay.
-      // Note: instead of the default WebpackDevServer client, we use a custom one
-      // to bring better experience for Create React App users. You can replace
-      // the line below with these two lines if you prefer the stock client:
-      // require.resolve('webpack-dev-server/client') + '?/',
-      // require.resolve('webpack/hot/dev-server'),
-      isEnvDevelopment &&
-        require.resolve("react-dev-utils/webpackHotDevClient"),
-      // Finally, this is your app's code:
-      paths.appIndexJs
-      // We include the app code last so that if there is a runtime error during
-      // initialization, it doesn't blow up the WebpackDevServer client, and
-      // changing JS code would still trigger a refresh.
-    ].filter(Boolean),
+    entry: { ...entrys },
+    // entry: [
+    //   // Include an alternative client for WebpackDevServer. A client's job is to
+    //   // connect to WebpackDevServer by a socket and get notified about changes.
+    //   // When you save a file, the client will either apply hot updates (in case
+    //   // of CSS changes), or refresh the page (in case of JS changes). When you
+    //   // make a syntax error, this client will display a syntax error overlay.
+    //   // Note: instead of the default WebpackDevServer client, we use a custom one
+    //   // to bring better experience for Create React App users. You can replace
+    //   // the line below with these two lines if you prefer the stock client:
+    //   // require.resolve('webpack-dev-server/client') + '?/',
+    //   // require.resolve('webpack/hot/dev-server'),
+    //   isEnvDevelopment &&
+    //   require.resolve("react-dev-utils/webpackHotDevClient"),
+    //   // Finally, this is your app's code:
+    //   paths.appIndexJs
+    //   // We include the app code last so that if there is a runtime error during
+    //   // initialization, it doesn't blow up the WebpackDevServer client, and
+    //   // changing JS code would still trigger a refresh.
+    // ].filter(Boolean),
     output: {
       // The build folder.
       path: isEnvProduction ? paths.appBuild : undefined,
@@ -511,31 +550,7 @@ module.exports = function(webpackEnv) {
     },
     plugins: [
       // Generates an `index.html` file with the <script> injected.
-      new HtmlWebpackPlugin(
-        Object.assign(
-          {},
-          {
-            inject: true,
-            template: paths.appHtml
-          },
-          isEnvProduction
-            ? {
-                minify: {
-                  removeComments: true,
-                  collapseWhitespace: true,
-                  removeRedundantAttributes: true,
-                  useShortDoctype: true,
-                  removeEmptyAttributes: true,
-                  removeStyleLinkTypeAttributes: true,
-                  keepClosingSlash: true,
-                  minifyJS: true,
-                  minifyCSS: true,
-                  minifyURLs: true
-                }
-              }
-            : undefined
-        )
-      ),
+      ...htmlWebpackPluginData,
       // Inlines the webpack runtime script. This script is too small to warrant
       // a network request.
       // https://github.com/facebook/create-react-app/issues/5358
@@ -585,21 +600,21 @@ module.exports = function(webpackEnv) {
       //   can be used to reconstruct the HTML if necessary
       new ManifestPlugin({
         fileName: "asset-manifest.json",
-        publicPath: publicPath,
-        generate: (seed, files, entrypoints) => {
-          const manifestFiles = files.reduce((manifest, file) => {
-            manifest[file.name] = file.path;
-            return manifest;
-          }, seed);
-          const entrypointFiles = entrypoints.main.filter(
-            fileName => !fileName.endsWith(".map")
-          );
+        publicPath: publicPath
+        // generate: (seed, files, entrypoints) => {
+        //   const manifestFiles = files.reduce((manifest, file) => {
+        //     manifest[file.name] = file.path;
+        //     return manifest;
+        //   }, seed);
+        //   const entrypointFiles = entrypoints.main.filter(
+        //     fileName => !fileName.endsWith(".map")
+        //   );
 
-          return {
-            files: manifestFiles,
-            entrypoints: entrypointFiles
-          };
-        }
+        //   return {
+        //     files: manifestFiles,
+        //     entrypoints: entrypointFiles
+        //   };
+        // }
       }),
       // Moment.js is an extremely popular library that bundles large locale files
       // by default due to how Webpack interprets its code. This is a practical
