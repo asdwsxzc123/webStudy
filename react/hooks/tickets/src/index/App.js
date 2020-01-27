@@ -86,16 +86,19 @@ function App(props) {
     );
   }, [dispatch]);
 
-  const onSelectDate = useCallback(day => {
-    if (!day) {
-      return;
-    }
-    if (day < h0()) {
-      return;
-    }
-    dispatch(setDepartDate(day));
-    dispatch(hideDateSelector());
-  }, []);
+  const onSelectDate = useCallback(
+    day => {
+      if (!day) {
+        return;
+      }
+      if (day < h0()) {
+        return;
+      }
+      dispatch(setDepartDate(day));
+      dispatch(hideDateSelector());
+    },
+    [dispatch]
+  );
 
   return (
     <div>
