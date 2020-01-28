@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const cities = require("./json/cities.json");
+const query = require("./json/query.json");
 const port = 5000;
 app.get("/", (req, res) => {
   res.status(200);
@@ -9,6 +10,9 @@ app.get("/", (req, res) => {
 });
 app.get("/cities", (req, res) => {
   return res.json(cities);
+});
+app.get("/query", (req, res) => {
+  return res.json(query);
 });
 app.get("/search", (req, res) => {
   const { key } = req.query;

@@ -1,0 +1,10 @@
+{
+  "extends": "react-app",
+  "plugins": [
+    "react-hooks"
+  ],
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "generator-star-spacing": "off" // 关闭函数前检测
+  }
+}
