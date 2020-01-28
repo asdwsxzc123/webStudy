@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "dayjs": "^1.8.19",
     "express": "^4.17.1"
   }
 }
