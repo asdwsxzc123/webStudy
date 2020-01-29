@@ -1,7 +1,12 @@
-import React, { useState, useMemo, useEffect, memo } from "react";
-import Proptypes from "prop-types";
-import classnames from "classnames";
-import "./CitySelector.css";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  memo
+} from 'react';
+import Proptypes from 'prop-types';
+import classnames from 'classnames';
+import './CitySelector.css';
 
 const CityItem = memo(function CityItem(props) {
   const { name, onSelect } = props;
@@ -43,7 +48,10 @@ CitySelection.propTypes = {
 const AlphaIndex = memo(function AlphaIndex(props) {
   const { alpha, onClick } = props;
   return (
-    <i className="city-index-item" onClick={() => onClick(alpha)}>
+    <i
+      className="city-index-item"
+      onClick={() => onClick(alpha)}
+    >
       {alpha}
     </i>
   );
@@ -75,7 +83,13 @@ const CityList = memo(function CityList(props) {
       </div>
       <div className="city-index">
         {alphabet.map(alpha => {
-          return <AlphaIndex key={alpha} onClick={toAlpha} alpha={alpha} />;
+          return (
+            <AlphaIndex
+              key={alpha}
+              onClick={toAlpha}
+              alpha={alpha}
+            />
+          );
         })}
       </div>
     </div>
@@ -89,7 +103,10 @@ CityList.propTypes = {
 const SuggestItem = memo(function SuggestItem(props) {
   const { name, onClick } = props;
   return (
-    <li className="city-suggest-li" onClick={() => onClick(name)}>
+    <li
+      className="city-suggest-li"
+      onClick={() => onClick(name)}
+    >
       {name}
     </li>
   );
@@ -103,7 +120,7 @@ const Suggest = memo(function Suggest(props) {
   const { searchKey, onClick } = props;
   const [result, setResult] = useState([]);
   useEffect(() => {
-    fetch("/api/search?key=" + encodeURIComponent(searchKey))
+    fetch('/api/search?key=' + encodeURIComponent(searchKey))
       .then(res => res.json())
       .then(data => {
         const { result, searchKey: sKey } = data;
@@ -140,9 +157,16 @@ Suggest.propTypes = {
   onClick: Proptypes.func.isRequired
 };
 const CitySelector = memo(function CitySelector(props) {
-  const { show, cityData, isLoading, onBack, fetchCityData, onSelect } = props;
+  const {
+    show,
+    cityData,
+    isLoading,
+    onBack,
+    fetchCityData,
+    onSelect
+  } = props;
 
-  const [searchKey, setSearchKey] = useState("");
+  const [searchKey, setSearchKey] = useState('');
 
   // 返回useMemo的值,性能优化
   const key = useMemo(() => searchKey.trim(), [searchKey]);
@@ -153,7 +177,9 @@ const CitySelector = memo(function CitySelector(props) {
   }, [show, cityData, fetchCityData, isLoading]);
 
   const toAlpha = alpha => {
-    document.querySelector(`[data-cate='${alpha}']`).scrollIntoView();
+    document
+      .querySelector(`[data-cate='${alpha}']`)
+      .scrollIntoView();
   };
 
   const outputCitySections = () => {
@@ -173,7 +199,7 @@ const CitySelector = memo(function CitySelector(props) {
   };
   return (
     <div
-      className={classnames("city-selector", {
+      className={classnames('city-selector', {
         hidden: !show
       })}
     >
@@ -198,14 +224,19 @@ const CitySelector = memo(function CitySelector(props) {
           />
         </div>
         <i
-          className={classnames("search-clean", { hidden: key.length === 0 })}
-          onClick={() => setSearchKey("")}
+          className={classnames('search-clean', {
+            hidden: key.length === 0
+          })}
+          onClick={() => setSearchKey('')}
         >
           &#xf063;
         </i>
       </div>
       {Boolean(key) && (
-        <Suggest searchKey={key} onClick={key => onSelect(key)} />
+        <Suggest
+          searchKey={key}
+          onClick={key => onSelect(key)}
+        />
       )}
       {outputCitySections()}
     </div>

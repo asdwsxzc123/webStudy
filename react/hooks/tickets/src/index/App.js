@@ -1,14 +1,14 @@
-import React, { useCallback, useMemo } from "react";
-import { connect } from "react-redux";
-import "./App.css";
+import React, { useCallback, useMemo } from 'react';
+import { connect } from 'react-redux';
+import './App.css';
 
-import Header from "../common/Header";
-import DepartDate from "./DepartDate";
-import HighSpeed from "./HighSpeed";
-import Submit from "./Submit";
-import Journey from "./Journey";
-import CitySelector from "../common/CitySelector";
-import DateSelector from "../common/DateSelector";
+import Header from '../common/Header';
+import DepartDate from './DepartDate';
+import HighSpeed from './HighSpeed';
+import Submit from './Submit';
+import Journey from './Journey';
+import CitySelector from '../common/CitySelector';
+import DateSelector from '../common/DateSelector';
 import {
   showCitySelector,
   exchangeFromTo,
@@ -19,10 +19,10 @@ import {
   hideDateSelector,
   setDepartDate,
   toggleHighSpeed
-} from "./actions";
-import { bindActionCreators } from "redux";
+} from './actions';
+import { bindActionCreators } from 'redux';
 
-import { h0 } from "../common/fp";
+import { h0 } from '../common/fp';
 
 function App(props) {
   const {

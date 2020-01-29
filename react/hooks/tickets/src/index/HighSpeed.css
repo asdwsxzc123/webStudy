@@ -55,7 +55,7 @@
 .high-speed-track::after {
   position: absolute;
   left: 15px;
-  content: " ";
+  content: ' ';
   width: 34px;
   height: 28px;
   background-color: #fafafa;

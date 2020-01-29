@@ -8,10 +8,10 @@ import {
   ACTION_SET_IS_DATE_SELECTOR_VISIBLE,
   ACTION_SET_HIGH_SPEED,
   ACTION_SET_DEPART_DATE
-} from "./actions";
+} from './actions';
 
 export default {
-  from(state = "北京", action) {
+  from(state = '北京', action) {
     const { type, payload } = action;
     switch (type) {
       case ACTION_SET_FROM:
@@ -20,7 +20,7 @@ export default {
     }
     return state;
   },
-  to(state = "上海", action) {
+  to(state = '上海', action) {
     const { type, payload } = action;
     switch (type) {
       case ACTION_SET_TO:

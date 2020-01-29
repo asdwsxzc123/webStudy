@@ -1,9 +1,15 @@
-import { createStore, combineReducers, applyMiddleware } from "redux";
-import reducers from "./reducers";
-import thunk from "redux-thunk";
-import { h0 } from "../common/fp";
-import { ORDER_DEPART } from "./constant";
-const { composeWithDevTools } = require("redux-devtools-extension");
+import {
+  createStore,
+  combineReducers,
+  applyMiddleware
+} from 'redux';
+import reducers from './reducers';
+import thunk from 'redux-thunk';
+import { h0 } from '../common/fp';
+import { ORDER_DEPART } from './constant';
+const {
+  composeWithDevTools
+} = require('redux-devtools-extension');
 
 export default createStore(
   combineReducers(reducers),

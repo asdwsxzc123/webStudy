@@ -1,5 +1,5 @@
-import React from "react";
-import "./Submit.css";
+import React from 'react';
+import './Submit.css';
 const Submit = function Submit(props) {
   return (
     <div className="submit">

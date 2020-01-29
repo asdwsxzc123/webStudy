@@ -1,6 +1,6 @@
-import React from "react";
-import switchImg from "./imgs/switch.svg";
-import "./Journey.css";
+import React from 'react';
+import switchImg from './imgs/switch.svg';
+import './Journey.css';
 export default function Journey(props) {
   const {
     from,
@@ -11,7 +11,10 @@ export default function Journey(props) {
   } = props;
   return (
     <div className="journey">
-      <div className="journey-station" onClick={() => showCitySelector(true)}>
+      <div
+        className="journey-station"
+        onClick={() => showCitySelector(true)}
+      >
         <input
           type="text"
           readOnly
@@ -22,9 +25,17 @@ export default function Journey(props) {
       </div>
       <div className="journey-switch" onClick={exchangeFromTo}>
         {/* img引入svg文件 */}
-        <img src={switchImg} alt="switch" width="70" height="40" />
+        <img
+          src={switchImg}
+          alt="switch"
+          width="70"
+          height="40"
+        />
       </div>
-      <div className="journey-station" onClick={() => showCitySelector(false)}>
+      <div
+        className="journey-station"
+        onClick={() => showCitySelector(false)}
+      >
         <input
           type="text"
           readOnly

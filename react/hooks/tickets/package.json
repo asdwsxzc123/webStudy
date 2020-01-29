@@ -72,7 +72,7 @@
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
     "test": "node scripts/test.js",
-    "format": "eslint src/**/*.js --fix"
+    "format": "prettier src/**/*.{js,jsx,css,} --write && eslint src/**/*.js --fix"
   },
   "eslintConfig": {
     "extends": [
@@ -93,7 +93,12 @@
   },
   "lint-staged": {
     "*.{js,jsx}": [
+      "prettier --write",
       "eslint --fix",
+      "git add"
+    ],
+    "*.{css}": [
+      "prettier --write",
       "git add"
     ]
   },
