@@ -1,7 +1,6 @@
 import React, {
   useEffect,
   useCallback,
-  useMemo,
   lazy,
   Suspense
 } from 'react';
@@ -37,8 +36,6 @@ import {
 } from './actions';
 
 import './App.css';
-import { bindActionCreators } from 'redux';
-
 const Schedule = lazy(() => import('./Schedule'));
 
 function App(props) {
@@ -109,15 +106,6 @@ function App(props) {
       });
   }, [searchParsed, departDate, trainNumber, dispatch]);
 
-  const detailCbs = useMemo(() => {
-    return bindActionCreators(
-      {
-        toggleIsScheduleVisible
-      },
-      dispatch
-    );
-  }, [dispatch]);
-
   if (!searchParsed) return null;
   return (
     <div className="app">
@@ -143,8 +131,16 @@ function App(props) {
           departStation={departStation}
           arriveStation={arriveStation}
           durationStr={durationStr}
-          {...detailCbs}
-        />
+        >
+          <span className="left"></span>
+          <span
+            className="schedule"
+            onClick={() => dispatch(toggleIsScheduleVisible())}
+          >
+            时刻表
+          </span>
+          <span className="right"></span>
+        </Detail>
       </div>
       {isScheduleVisible && (
         <div

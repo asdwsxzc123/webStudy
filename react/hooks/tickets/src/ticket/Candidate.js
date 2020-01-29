@@ -21,7 +21,7 @@ const Channel = memo(function Channel(props) {
   } = useContext(TrainContext) || {};
   const src = useMemo(() => {
     return new URI('/order.html')
-      .setSearch('trainNumer', trainNumber)
+      .setSearch('trainNumber', trainNumber)
       .setSearch('dStation', departStation)
       .setSearch('aStation', arriveStation)
       .setSearch('type', type)

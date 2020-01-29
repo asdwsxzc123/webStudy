@@ -6,3 +6,8 @@ export function h0(timestamp = Date.now()) {
   target.setMilliseconds(0);
   return target.getTime();
 }
+
+export const onBack = () => {
+  console.log(22);
+  window.history.back();
+};
