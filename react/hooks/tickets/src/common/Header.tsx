@@ -1,12 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import './Header.css';
-export default function Header(props) {
-  const { onBack, title } = props;
-
+interface HeaderProps {
+  onBack: Function;
+  title: String;
+}
+const Header = ({ onBack, title }: HeaderProps) => {
   return (
     <div className="header">
-      <div className="header-back" onClick={onBack}>
+      <div className="header-back" onClick={() => onBack()}>
         <svg width="42" height="42">
           <polyline
             points="25,13 16,21 25,29"
@@ -19,8 +21,9 @@ export default function Header(props) {
       <h1 className="header-title">{title}</h1>
     </div>
   );
-}
+};
 Header.propTypes = {
   onBack: PropTypes.func.isRequired,
   title: PropTypes.string.isRequired
 };
+export default Header;
