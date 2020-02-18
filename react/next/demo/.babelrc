@@ -1,0 +1,20 @@
+{
+  "presets": [
+    "next/babel",
+    "@zeit/next-typescript/babel"
+  ],
+  "plugins": [
+    [
+      "import",
+      {
+        "libraryName": "antd"
+      }
+    ],
+    [
+      "styled-components",
+      {
+        "ssr": true
+      }
+    ]
+  ]
+}
