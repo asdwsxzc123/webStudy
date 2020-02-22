@@ -1,4 +1,4 @@
-import Document, { Html, Head, Main, NextScript } from 'next/document';
+import Docuemnt, { Html, Head, Main, NextScript } from 'next/document';
 import { ServerStyleSheet } from 'styled-components';
 
 // function withLog(Comp) {
@@ -7,18 +7,17 @@ import { ServerStyleSheet } from 'styled-components';
 //     return <Comp {...props} />;
 //   };
 // }
-class MyDocument extends Document {
+class MyDocument extends Docuemnt {
   static async getInitialProps(ctx) {
     const sheet = new ServerStyleSheet();
     const originalRenderPage = ctx.renderPage;
 
     try {
-      ctx.renderPage = () => {
+      ctx.renderPage = () =>
         originalRenderPage({
           enhanceApp: App => props => sheet.collectStyles(<App {...props} />)
         });
-      };
-      const props = await Document.getInitialProps(ctx);
+      const props = await Docuemnt.getInitialProps(ctx);
       return {
         ...props,
         styles: (
@@ -35,10 +34,8 @@ class MyDocument extends Document {
   render() {
     return (
       <Html>
-        <Head>
-          <style>{`.test {color: red}`}</style>
-        </Head>
-        <body className="test">
+        <Head />
+        <body>
           <Main />
           <NextScript />
         </body>
