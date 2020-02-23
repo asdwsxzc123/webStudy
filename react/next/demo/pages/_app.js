@@ -1,29 +1,71 @@
-import React from 'react';
 import App, { Container } from 'next/app';
-import Layout from '../components/Layout';
+import { Provider } from 'react-redux';
+import Router from 'next/router';
+import Link from 'next/link';
+
 import 'antd/dist/antd.css';
 
+// import Layout from '../components/Layout';
+// import PageLoading from '../components/PageLoading';
+
+import testHoc from '../lib/with-redux';
+
 class MyApp extends App {
-  constructor(props) {
-    super(props);
+  state = {
+    context: 'value',
+    loading: false
+  };
+
+  startLoading = () => {
+    this.setState({
+      loading: true
+    });
+  };
+
+  stopLoading = () => {
+    this.setState({
+      loading: false
+    });
+  };
+
+  componentDidMount() {
+    Router.events.on('routeChangeStart', this.startLoading);
+    Router.events.on('routeChangeComplete', this.stopLoading);
+    Router.events.on('routeChangeError', this.stopLoading);
   }
-  static async getInitialProps({ Component }) {
+
+  componentWillUnmount() {
+    Router.events.off('routeChangeStart', this.startLoading);
+    Router.events.off('routeChangeComplete', this.stopLoading);
+    Router.events.off('routeChangeError', this.stopLoading);
+  }
+
+  static async getInitialProps(ctx) {
+    const { Component } = ctx;
     console.log('app init');
-    let pageProps;
+    let pageProps = {};
     if (Component.getInitialProps) {
-      pageProps = await Component.getInitialProps();
+      pageProps = await Component.getInitialProps(ctx);
     }
-    return { pageProps };
+    return {
+      pageProps
+    };
   }
+
   render() {
-    const { Component, pageProps } = this.props;
+    const { Component, pageProps, reduxStore } = this.props;
+
     return (
       <Container>
-        <Layout>
+        <Provider store={reduxStore}>
+          {/* {this.state.loading ? <PageLoading /> : null} */}
+          {/* <Layout> */}
           <Component {...pageProps} />
-        </Layout>
+          {/* </Layout> */}
+        </Provider>
       </Container>
     );
   }
 }
-export default MyApp;
+
+export default testHoc(MyApp);
