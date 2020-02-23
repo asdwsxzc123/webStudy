@@ -1,6 +1,8 @@
 // const withTypescript = require('@zeit/next-typescript');
 const withCss = require('@zeit/next-css');
+const gitConfig = require('./github-config');
 
+const GITHUB_OAUTH_URL = 'https://github.com/login/oauth/authorize';
 const configs = {
   // 编译文件的输出目录
   distDir: 'dest',
@@ -44,7 +46,8 @@ const configs = {
   },
   // 在服务端渲染和客户端渲染都可获取的配置
   publicRuntimeConfig: {
-    staticFolder: '/static'
+    GITHUB_OAUTH_URL,
+    OAUTH_URL: `${GITHUB_OAUTH_URL}?client_id=${gitConfig.github.client_id}`
   }
 };
 if (typeof require !== 'undefined') {
