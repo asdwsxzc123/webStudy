@@ -1,60 +1,59 @@
-import { withRouter } from 'next/router';
-import { shape, string } from 'prop-types';
-import dynamic from 'next/dynamic';
-import getconfig from 'next/config';
-import styled from 'styled-components';
-// import moment from 'moment';
-// import Comp from '../components/comp';
-const Comp = dynamic(import('../components/comp'));
+import { withRouter } from 'next/router'
+import getCofnig from 'next/config'
+import dynamic from 'next/dynamic'
+import Head from 'next/head'
+import Link from 'next/link'
+import styled from 'styled-components'
+// import moment from 'moment'
 
-const { serverRuntimeConfig, publicRuntimeConfig } = getconfig();
+const Comp = dynamic(import('../components/comp'))
+
+const { serverRuntimeConfig, publicRuntimeConfig } = getCofnig()
 
 const Title = styled.h1`
-  color: red;
-  font-size: 22px;
-`;
+  color: yellow;
+  font-size: 40px;
+`
+
+const color = '#113366'
+
 const A = ({ router, name, time }) => {
-  console.log(serverRuntimeConfig, publicRuntimeConfig);
+  console.log(serverRuntimeConfig, publicRuntimeConfig)
+
   return (
     <>
-      <Title>
-        this is title;
-        {time}
-      </Title>
+      <Title>This is Title {time}</Title>
       <Comp />
-      <div>
-        {router.query.id}
-        {name}
-        {process.env.customKey}
-        {process.env.customKey}
-      </div>
+      <Link href="#aaa">
+        <a className="link">
+          A {router.query.id} {name} {process.env.customKey}
+        </a>
+      </Link>
+      <style jsx>{`
+        a {
+          color: blue;
+        }
+        .link {
+          color: ${color};
+        }
+      `}</style>
     </>
-  );
-};
-A.defaultProps = {
-  router: {},
-  name: ''
-};
-A.propTypes = {
-  router: shape({
-    query: shape({
-      id: string
-    })
-  }),
-  name: string
-};
-// 等待後才渲染頁面,會有空白頁
-A.getInitialProps = async () => {
-  const moment = await import('moment');
-  const promise = new Promise(resolve =>
+  )
+}
+
+A.getInitialProps = async ctx => {
+  const moment = await import('moment')
+
+  const promise = new Promise(resolve => {
     setTimeout(() => {
       resolve({
         name: 'jokcy',
-        time: moment.default(Date.now() - 60 * 1000).fromNow()
-      });
+        time: moment.default(Date.now() - 60 * 1000).fromNow(),
+      })
     }, 1000)
-  );
-  return await promise;
-};
+  })
 
-export default withRouter(A);
+  return await promise
+}
+
+export default withRouter(A)
