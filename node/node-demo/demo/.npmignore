@@ -1,0 +1,6 @@
+# npm提交忽略
+node_modules
+src
+test
+.editconfig
+.eslintrc.js

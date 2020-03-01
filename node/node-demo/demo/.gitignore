@@ -1,0 +1,12 @@
+logs
+*.logs
+npm-debug.log*
+# 不传node_modules下的
+node_modules/
+.idea/
+.DS_Store
+# 目录下的不返回
+build/
+# 取反
+!index.html
+
