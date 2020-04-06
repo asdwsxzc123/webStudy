@@ -1,0 +1,33 @@
+{
+  "extends": [
+    "taro"
+  ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {
+    "jsx-quotes": 0,
+    "import/prefer-default-export": 0,
+    "react/no-multi-comp": 0,
+    "react/no-unused-state": 0,
+    "no-unused-vars": [
+      "error",
+      {
+        "varsIgnorePattern": "Taro"
+      }
+    ],
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [
+          ".js",
+          ".jsx",
+          ".tsx"
+        ]
+      }
+    ]
+  },
+  "parser": "babel-eslint"
+}

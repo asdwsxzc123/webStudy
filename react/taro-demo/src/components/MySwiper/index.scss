@@ -1,0 +1,19 @@
+@import "../../styles/mixin";
+
+.swiper-container {
+  width: 100%;
+  min-height: 450px;
+  height: 100%;
+  .img {
+    width: 100vw;
+  }
+}
+
+.swiper {
+  width: 100vw;
+  height: 450px;
+  .img {
+    width: 100vw;
+    height: 450px !important;
+  }
+}
