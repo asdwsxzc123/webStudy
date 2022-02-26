@@ -68,7 +68,7 @@
     "terser-webpack-plugin": "2.2.1",
     "ts-pnp": "1.1.5",
     "typescript": "^3.7.5",
-    "urijs": "^1.19.2",
+    "urijs": "^1.19.8",
     "url-loader": "2.3.0",
     "webpack": "4.41.2",
     "webpack-dev-server": "3.9.0",
